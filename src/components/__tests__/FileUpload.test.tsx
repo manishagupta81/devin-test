@@ -106,4 +106,28 @@ describe('FileUpload', () => {
     const uploadButton = screen.queryByRole('button', { name: /upload file/i });
     expect(uploadButton).not.toBeInTheDocument();
   });
+
+  test('shows dialog open state when upload area is clicked', async () => {
+    const user = userEvent.setup();
+    renderWithTheme(<FileUpload onFileUpload={mockOnFileUpload} />);
+
+    const uploadArea = screen.getByText('Drag and drop a file here, or click to select').closest('div');
+    await user.click(uploadArea!);
+
+    expect(screen.getByText('File dialog is open - please select a file')).toBeInTheDocument();
+    expect(screen.getByText('If you don\'t see the file dialog, check if it opened behind this window')).toBeInTheDocument();
+  });
+
+  test('resets dialog state after file selection', async () => {
+    const user = userEvent.setup();
+    renderWithTheme(<FileUpload onFileUpload={mockOnFileUpload} />);
+
+    const file = new File(['test content'], 'test.pdf', { type: 'application/pdf' });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    
+    await user.upload(input, file);
+
+    expect(screen.queryByText('File dialog is open - please select a file')).not.toBeInTheDocument();
+    expect(screen.getByText('test.pdf')).toBeInTheDocument();
+  });
 });
