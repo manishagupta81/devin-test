@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -32,10 +32,25 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      if (dialogOpen) {
+        setTimeout(() => {
+          setDialogOpen(false);
+        }, 100);
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    return () => window.removeEventListener('focus', handleWindowFocus);
+  }, [dialogOpen]);
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setDialogOpen(false);
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
@@ -122,21 +137,25 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
         <Box
           sx={{
             border: '2px dashed',
-            borderColor: selectedFile ? 'primary.main' : 'grey.300',
+            borderColor: dialogOpen ? 'primary.dark' : (selectedFile ? 'primary.main' : 'grey.300'),
             borderRadius: 2,
             p: 3,
             textAlign: 'center',
-            backgroundColor: selectedFile ? 'primary.50' : 'grey.50',
-            cursor: 'pointer',
+            backgroundColor: dialogOpen ? 'primary.100' : (selectedFile ? 'primary.50' : 'grey.50'),
+            cursor: dialogOpen ? 'wait' : 'pointer',
             transition: 'all 0.2s ease',
+            position: 'relative',
             '&:hover': {
-              borderColor: 'primary.main',
-              backgroundColor: 'primary.50',
+              borderColor: dialogOpen ? 'primary.dark' : 'primary.main',
+              backgroundColor: dialogOpen ? 'primary.100' : 'primary.50',
             },
           }}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => {
+            setDialogOpen(true);
+            fileInputRef.current?.click();
+          }}
         >
           <input
             ref={fileInputRef}
@@ -155,6 +174,15 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+              </Typography>
+            </Box>
+          ) : dialogOpen ? (
+            <Box>
+              <Typography variant="body1" gutterBottom color="primary.main" fontWeight="medium">
+                File dialog is open - please select a file
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                If you don't see the file dialog, check if it opened behind this window
               </Typography>
             </Box>
           ) : (
