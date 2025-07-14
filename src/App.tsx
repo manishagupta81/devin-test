@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   CssBaseline,
@@ -28,6 +28,9 @@ import {
   Android as AndroidIcon,
   ExpandLess,
 } from '@mui/icons-material';
+import { FileItem, FileCategory } from './types';
+import FileList from './components/FileList';
+import FileUpload from './components/FileUpload';
 
 const theme = createTheme({
   palette: {
@@ -44,9 +47,45 @@ const theme = createTheme({
 
 const drawerWidth = 280;
 
+// Mock initial files
+const initialFiles: FileItem[] = [
+  {
+    id: '1',
+    name: 'Project Requirements.pdf',
+    author: 'Alice Smith',
+    tags: ['requirements', 'project'],
+    category: 'internal',
+    uploadDate: new Date('2024-01-15'),
+    size: 2048000,
+    type: 'application/pdf',
+  },
+  {
+    id: '2',
+    name: 'External API Documentation.docx',
+    author: 'Bob Johnson',
+    tags: ['api', 'documentation'],
+    category: 'external',
+    uploadDate: new Date('2024-01-10'),
+    size: 1024000,
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  },
+  {
+    id: '3',
+    name: 'AI Analysis Report.xlsx',
+    author: 'AI Assistant',
+    tags: ['analysis', 'report', 'ai'],
+    category: 'ai-generated',
+    uploadDate: new Date('2024-01-20'),
+    size: 512000,
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  },
+];
+
 function App() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [selectedMenuItem, setSelectedMenuItem] = useState<string>('overview');
+  const [files, setFiles] = useState<FileItem[]>(initialFiles);
+  const [filteredFiles, setFilteredFiles] = useState<FileItem[]>([]);
 
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: <Dashboard /> },
@@ -56,6 +95,57 @@ function App() {
     { id: 'agents', label: 'Agents', icon: <AndroidIcon /> },
     { id: 'settings', label: 'Settings', icon: <Settings /> },
   ];
+
+  useEffect(() => {
+    let filtered: FileItem[] = [];
+    switch (selectedMenuItem) {
+      case 'ai-reports':
+        filtered = files.filter(file => file.category === 'ai-generated');
+        break;
+      case 'external-files':
+        filtered = files.filter(file => file.category === 'external');
+        break;
+      case 'internal-research':
+        filtered = files.filter(file => file.category === 'internal');
+        break;
+      case 'overview':
+        filtered = files;
+        break;
+      default:
+        filtered = [];
+    }
+    setFilteredFiles(filtered);
+  }, [files, selectedMenuItem]);
+
+  const handleFileUpload = (newFile: FileItem) => {
+    setFiles(prev => [...prev, newFile]);
+  };
+
+  const handleFileOpen = (file: FileItem) => {
+    if (file.url) {
+      window.open(file.url, '_blank');
+    } else if (file.file) {
+      const url = URL.createObjectURL(file.file);
+      window.open(url, '_blank');
+    } else {
+      alert(`Opening ${file.name}...`);
+    }
+  };
+
+  const getFileCategory = (): FileCategory => {
+    switch (selectedMenuItem) {
+      case 'ai-reports':
+        return 'ai-generated';
+      case 'external-files':
+        return 'external';
+      case 'internal-research':
+        return 'internal';
+      case 'overview':
+        return 'all';
+      default:
+        return 'all';
+    }
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -193,32 +283,66 @@ function App() {
           sx={{ 
             flexGrow: 1, 
             bgcolor: 'background.default', 
+            p: 3,
             minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
           }}
         >
           <Toolbar />
           
-          {selectedDepartment ? (
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" sx={{ mb: 2 }}>
-                Department: {selectedDepartment}
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Content for {selectedDepartment} department would be displayed here.
-              </Typography>
+          {!selectedDepartment ? (
+            <Box sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: 'calc(100vh - 200px)',
+              textAlign: 'center'
+            }}>
+              <Box>
+                <Typography variant="h4" sx={{ mb: 2, color: 'text.primary', fontWeight: 'normal' }}>
+                  No Department Selected
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  Please select a department from the menu to view<br />
+                  its information.
+                </Typography>
+              </Box>
             </Box>
           ) : (
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" sx={{ mb: 2, color: 'text.primary', fontWeight: 'normal' }}>
-                No Department Selected
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Please select a department from the menu to view<br />
-                its information.
-              </Typography>
+            <Box>
+              {(selectedMenuItem === 'overview' || selectedMenuItem === 'ai-reports' || selectedMenuItem === 'external-files' || selectedMenuItem === 'internal-research') && (
+                <>
+                  <Box sx={{ mb: 3 }}>
+                    <FileUpload onFileUpload={handleFileUpload} />
+                  </Box>
+                  <FileList 
+                    files={filteredFiles} 
+                    onFileOpen={handleFileOpen}
+                    category={getFileCategory()}
+                  />
+                </>
+              )}
+              
+              {selectedMenuItem === 'agents' && (
+                <Box sx={{ textAlign: 'center', mt: 8 }}>
+                  <Typography variant="h4" sx={{ mb: 2 }}>
+                    Agents
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                    Agent management functionality would be implemented here.
+                  </Typography>
+                </Box>
+              )}
+              
+              {selectedMenuItem === 'settings' && (
+                <Box sx={{ textAlign: 'center', mt: 8 }}>
+                  <Typography variant="h4" sx={{ mb: 2 }}>
+                    Settings
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                    Application settings would be configured here.
+                  </Typography>
+                </Box>
+              )}
             </Box>
           )}
         </Box>
