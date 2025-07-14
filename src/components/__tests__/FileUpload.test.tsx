@@ -33,7 +33,7 @@ describe('FileUpload', () => {
     renderWithTheme(<FileUpload onFileUpload={mockOnFileUpload} />);
 
     const file = new File(['test content'], 'test.pdf', { type: 'application/pdf' });
-    const input = screen.getByRole('button', { hidden: true }) as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     
     await user.upload(input, file);
 
@@ -45,11 +45,11 @@ describe('FileUpload', () => {
     renderWithTheme(<FileUpload onFileUpload={mockOnFileUpload} />);
 
     const file = new File(['test content'], 'test.pdf', { type: 'application/pdf' });
-    const input = screen.getByRole('button', { hidden: true }) as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     
     await user.upload(input, file);
 
-    const categorySelect = screen.getByLabelText('Category');
+    const categorySelect = screen.getByRole('combobox');
     await user.click(categorySelect);
     
     const externalOption = screen.getByText('External');
@@ -63,14 +63,14 @@ describe('FileUpload', () => {
     renderWithTheme(<FileUpload onFileUpload={mockOnFileUpload} />);
 
     const file = new File(['test content'], 'test.pdf', { type: 'application/pdf' });
-    const input = screen.getByRole('button', { hidden: true }) as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     
     await user.upload(input, file);
 
     const tagInput = screen.getByPlaceholderText('Add a tag');
     await user.type(tagInput, 'important');
     
-    const addButton = screen.getByRole('button', { name: /add/i });
+    const addButton = screen.getByTestId('AddIcon').closest('button') as HTMLButtonElement;
     await user.click(addButton);
 
     expect(screen.getByText('important')).toBeInTheDocument();
@@ -81,7 +81,7 @@ describe('FileUpload', () => {
     renderWithTheme(<FileUpload onFileUpload={mockOnFileUpload} />);
 
     const file = new File(['test content'], 'test.pdf', { type: 'application/pdf' });
-    const input = screen.getByRole('button', { hidden: true }) as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     
     await user.upload(input, file);
 

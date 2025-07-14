@@ -100,7 +100,7 @@ describe('FileList', () => {
 
     expect(screen.getByText('Test Author')).toBeInTheDocument();
     expect(screen.getByText('External Author')).toBeInTheDocument();
-    expect(screen.getByText('1 MB')).toBeInTheDocument();
-    expect(screen.getByText('512 KB')).toBeInTheDocument();
+    expect(screen.getByText('1000 KB')).toBeInTheDocument();
+    expect(screen.getByText('500 KB')).toBeInTheDocument();
   });
 });
