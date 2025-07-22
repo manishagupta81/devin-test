@@ -28,9 +28,10 @@ import {
   Android as AndroidIcon,
   ExpandLess,
 } from '@mui/icons-material';
-import { FileItem, FileCategory } from './types';
+import { FileItem, FileCategory, TickerSubscription } from './types';
 import FileList from './components/FileList';
 import FileUpload from './components/FileUpload';
+import TickerSubscriptions from './components/TickerSubscriptions';
 
 const theme = createTheme({
   palette: {
@@ -58,6 +59,7 @@ const initialFiles: FileItem[] = [
     uploadDate: new Date('2024-01-15'),
     size: 2048000,
     type: 'application/pdf',
+    ticker: 'AAPL',
   },
   {
     id: '2',
@@ -68,6 +70,7 @@ const initialFiles: FileItem[] = [
     uploadDate: new Date('2024-01-10'),
     size: 1024000,
     type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ticker: 'GOOGL',
   },
   {
     id: '3',
@@ -78,6 +81,7 @@ const initialFiles: FileItem[] = [
     uploadDate: new Date('2024-01-20'),
     size: 512000,
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ticker: 'MSFT',
   },
 ];
 
@@ -86,6 +90,7 @@ function App() {
   const [selectedMenuItem, setSelectedMenuItem] = useState<string>('overview');
   const [files, setFiles] = useState<FileItem[]>(initialFiles);
   const [filteredFiles, setFilteredFiles] = useState<FileItem[]>([]);
+  const [tickerSubscriptions, setTickerSubscriptions] = useState<TickerSubscription[]>([]);
 
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: <Dashboard /> },
@@ -147,6 +152,30 @@ function App() {
     }
   };
 
+  const handleSubscriptionChange = (ticker: string, subscribed: boolean) => {
+    setTickerSubscriptions(prev => 
+      prev.map(sub => 
+        sub.ticker === ticker 
+          ? { ...sub, subscribed, lastUpdate: new Date() }
+          : sub
+      )
+    );
+  };
+
+  const getAvailableTickers = (): string[] => {
+    return Array.from(new Set(files.map(file => file.ticker).filter(Boolean))) as string[];
+  };
+
+  useEffect(() => {
+    const availableTickers = Array.from(new Set(files.map(file => file.ticker).filter(Boolean)));
+    const newSubscriptions = availableTickers.map(ticker => ({
+      ticker: ticker!,
+      subscribed: false,
+      lastUpdate: new Date(),
+    }));
+    setTickerSubscriptions(newSubscriptions);
+  }, [files]);
+
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ display: 'flex' }}>
@@ -205,6 +234,11 @@ function App() {
               <Typography variant="body2">
                 Logged in as: test
               </Typography>
+              <TickerSubscriptions 
+                subscriptions={tickerSubscriptions}
+                onSubscriptionChange={handleSubscriptionChange}
+                availableTickers={getAvailableTickers()}
+              />
               <Avatar sx={{ width: 32, height: 32, bgcolor: 'grey.400' }}>
                 <Typography variant="body2" sx={{ fontSize: '14px' }}>T</Typography>
               </Avatar>

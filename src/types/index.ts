@@ -7,6 +7,7 @@ export interface FileItem {
   uploadDate: Date;
   size: number;
   type: string;
+  ticker?: string;
   url?: string;
   file?: File;
 }
@@ -18,3 +19,9 @@ export interface User {
 }
 
 export type FileCategory = 'internal' | 'external' | 'ai-generated' | 'all';
+
+export interface TickerSubscription {
+  ticker: string;
+  subscribed: boolean;
+  lastUpdate?: Date;
+}
