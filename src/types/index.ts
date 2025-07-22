@@ -8,6 +8,7 @@ export interface FileItem {
   size: number;
   type: string;
   ticker?: string;
+  team?: string;
   url?: string;
   file?: File;
 }
@@ -25,3 +26,11 @@ export interface TickerSubscription {
   subscribed: boolean;
   lastUpdate?: Date;
 }
+
+export interface TeamSubscription {
+  team: string;
+  subscribed: boolean;
+  lastUpdate?: Date;
+}
+
+export type SubscriptionType = 'ticker' | 'team';

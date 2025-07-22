@@ -117,6 +117,7 @@ const FileList: React.FC<FileListProps> = ({ files, onFileOpen, category }) => {
               <TableCell>Author</TableCell>
               <TableCell>Category</TableCell>
               <TableCell>Ticker</TableCell>
+              <TableCell>Team</TableCell>
               <TableCell>Tags</TableCell>
               <TableCell>Size</TableCell>
               <TableCell>Upload Date</TableCell>
@@ -178,6 +179,22 @@ const FileList: React.FC<FileListProps> = ({ files, onFileOpen, category }) => {
                       size="small"
                       variant="filled"
                       sx={{ fontWeight: 'bold', fontFamily: 'monospace' }}
+                    />
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      -
+                    </Typography>
+                  )}
+                </TableCell>
+                
+                <TableCell>
+                  {file.team ? (
+                    <Chip 
+                      label={file.team}
+                      color="secondary"
+                      size="small"
+                      variant="filled"
+                      sx={{ fontWeight: 'bold' }}
                     />
                   ) : (
                     <Typography variant="body2" color="text.secondary">

@@ -28,10 +28,10 @@ import {
   Android as AndroidIcon,
   ExpandLess,
 } from '@mui/icons-material';
-import { FileItem, FileCategory, TickerSubscription } from './types';
+import { FileItem, FileCategory, TickerSubscription, TeamSubscription } from './types';
 import FileList from './components/FileList';
 import FileUpload from './components/FileUpload';
-import TickerSubscriptions from './components/TickerSubscriptions';
+import SubscriptionsManager from './components/SubscriptionsManager';
 
 const theme = createTheme({
   palette: {
@@ -60,6 +60,7 @@ const initialFiles: FileItem[] = [
     size: 2048000,
     type: 'application/pdf',
     ticker: 'AAPL',
+    team: 'Engineering',
   },
   {
     id: '2',
@@ -71,6 +72,7 @@ const initialFiles: FileItem[] = [
     size: 1024000,
     type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ticker: 'GOOGL',
+    team: 'Marketing',
   },
   {
     id: '3',
@@ -82,6 +84,7 @@ const initialFiles: FileItem[] = [
     size: 512000,
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ticker: 'MSFT',
+    team: 'Sales',
   },
 ];
 
@@ -91,6 +94,7 @@ function App() {
   const [files, setFiles] = useState<FileItem[]>(initialFiles);
   const [filteredFiles, setFilteredFiles] = useState<FileItem[]>([]);
   const [tickerSubscriptions, setTickerSubscriptions] = useState<TickerSubscription[]>([]);
+  const [teamSubscriptions, setTeamSubscriptions] = useState<TeamSubscription[]>([]);
 
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: <Dashboard /> },
@@ -152,28 +156,100 @@ function App() {
     }
   };
 
-  const handleSubscriptionChange = (ticker: string, subscribed: boolean) => {
-    setTickerSubscriptions(prev => 
-      prev.map(sub => 
-        sub.ticker === ticker 
-          ? { ...sub, subscribed, lastUpdate: new Date() }
-          : sub
-      )
-    );
+  const handleSubscriptionChange = async (ticker: string, subscribed: boolean): Promise<void> => {
+    try {
+      const { mockSubscriptionApi } = await import('./services/mockApi');
+      
+      const result = await mockSubscriptionApi.updateSubscription({
+        ticker,
+        subscribed,
+        userId: 'test-user',
+        type: 'ticker',
+      });
+      
+      setTickerSubscriptions(prev => 
+        prev.map(sub => 
+          sub.ticker === ticker 
+            ? { ...sub, subscribed, lastUpdate: new Date() }
+            : sub
+        )
+      );
+
+      console.log(`Successfully ${subscribed ? 'subscribed to' : 'unsubscribed from'} ${ticker}`, result);
+    } catch (error) {
+      console.error('API call failed, updating local state only:', error);
+      
+      setTickerSubscriptions(prev => 
+        prev.map(sub => 
+          sub.ticker === ticker 
+            ? { ...sub, subscribed, lastUpdate: new Date() }
+            : sub
+        )
+      );
+      
+      throw error;
+    }
   };
 
   const getAvailableTickers = (): string[] => {
     return Array.from(new Set(files.map(file => file.ticker).filter(Boolean))) as string[];
   };
 
+  const getAvailableTeams = (): string[] => {
+    return Array.from(new Set(files.map(file => file.team).filter(Boolean))) as string[];
+  };
+
+  const handleTeamSubscriptionChange = async (team: string, subscribed: boolean): Promise<void> => {
+    try {
+      const { mockSubscriptionApi } = await import('./services/mockApi');
+      
+      const result = await mockSubscriptionApi.updateSubscription({
+        team,
+        subscribed,
+        userId: 'test-user',
+        type: 'team',
+      });
+      
+      setTeamSubscriptions(prev => 
+        prev.map(sub => 
+          sub.team === team 
+            ? { ...sub, subscribed, lastUpdate: new Date() }
+            : sub
+        )
+      );
+
+      console.log(`Successfully ${subscribed ? 'subscribed to' : 'unsubscribed from'} team ${team}`, result);
+    } catch (error) {
+      console.error('API call failed, updating local state only:', error);
+      
+      setTeamSubscriptions(prev => 
+        prev.map(sub => 
+          sub.team === team 
+            ? { ...sub, subscribed, lastUpdate: new Date() }
+            : sub
+        )
+      );
+      
+      throw error;
+    }
+  };
+
   useEffect(() => {
     const availableTickers = Array.from(new Set(files.map(file => file.ticker).filter(Boolean)));
-    const newSubscriptions = availableTickers.map(ticker => ({
+    const newTickerSubscriptions = availableTickers.map(ticker => ({
       ticker: ticker!,
       subscribed: false,
       lastUpdate: new Date(),
     }));
-    setTickerSubscriptions(newSubscriptions);
+    setTickerSubscriptions(newTickerSubscriptions);
+
+    const availableTeams = Array.from(new Set(files.map(file => file.team).filter(Boolean)));
+    const newTeamSubscriptions = availableTeams.map(team => ({
+      team: team!,
+      subscribed: false,
+      lastUpdate: new Date(),
+    }));
+    setTeamSubscriptions(newTeamSubscriptions);
   }, [files]);
 
   return (
@@ -234,10 +310,13 @@ function App() {
               <Typography variant="body2">
                 Logged in as: test
               </Typography>
-              <TickerSubscriptions 
-                subscriptions={tickerSubscriptions}
-                onSubscriptionChange={handleSubscriptionChange}
+              <SubscriptionsManager 
+                tickerSubscriptions={tickerSubscriptions}
+                teamSubscriptions={teamSubscriptions}
+                onTickerSubscriptionChange={handleSubscriptionChange}
+                onTeamSubscriptionChange={handleTeamSubscriptionChange}
                 availableTickers={getAvailableTickers()}
+                availableTeams={getAvailableTeams()}
               />
               <Avatar sx={{ width: 32, height: 32, bgcolor: 'grey.400' }}>
                 <Typography variant="body2" sx={{ fontSize: '14px' }}>T</Typography>
