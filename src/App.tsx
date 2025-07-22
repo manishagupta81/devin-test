@@ -152,14 +152,38 @@ function App() {
     }
   };
 
-  const handleSubscriptionChange = (ticker: string, subscribed: boolean) => {
-    setTickerSubscriptions(prev => 
-      prev.map(sub => 
-        sub.ticker === ticker 
-          ? { ...sub, subscribed, lastUpdate: new Date() }
-          : sub
-      )
-    );
+  const handleSubscriptionChange = async (ticker: string, subscribed: boolean): Promise<void> => {
+    try {
+      const { mockSubscriptionApi } = await import('./services/mockApi');
+      
+      const result = await mockSubscriptionApi.updateSubscription({
+        ticker,
+        subscribed,
+        userId: 'test-user',
+      });
+      
+      setTickerSubscriptions(prev => 
+        prev.map(sub => 
+          sub.ticker === ticker 
+            ? { ...sub, subscribed, lastUpdate: new Date() }
+            : sub
+        )
+      );
+
+      console.log(`Successfully ${subscribed ? 'subscribed to' : 'unsubscribed from'} ${ticker}`, result);
+    } catch (error) {
+      console.error('API call failed, updating local state only:', error);
+      
+      setTickerSubscriptions(prev => 
+        prev.map(sub => 
+          sub.ticker === ticker 
+            ? { ...sub, subscribed, lastUpdate: new Date() }
+            : sub
+        )
+      );
+      
+      throw error;
+    }
   };
 
   const getAvailableTickers = (): string[] => {

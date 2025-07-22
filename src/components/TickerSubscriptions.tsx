@@ -9,13 +9,14 @@ import {
   Typography,
   Divider,
   Badge,
+  CircularProgress,
 } from '@mui/material';
 import { Notifications, NotificationsActive } from '@mui/icons-material';
 import { TickerSubscription } from '../types';
 
 interface TickerSubscriptionsProps {
   subscriptions: TickerSubscription[];
-  onSubscriptionChange: (ticker: string, subscribed: boolean) => void;
+  onSubscriptionChange: (ticker: string, subscribed: boolean) => Promise<void>;
   availableTickers: string[];
 }
 
@@ -25,6 +26,7 @@ const TickerSubscriptions: React.FC<TickerSubscriptionsProps> = ({
   availableTickers,
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [loadingTickers, setLoadingTickers] = useState<Set<string>>(new Set());
   const open = Boolean(anchorEl);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -33,6 +35,21 @@ const TickerSubscriptions: React.FC<TickerSubscriptionsProps> = ({
 
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleSubscriptionToggle = async (ticker: string, subscribed: boolean) => {
+    setLoadingTickers(prev => new Set(prev).add(ticker));
+    try {
+      await onSubscriptionChange(ticker, subscribed);
+    } catch (error) {
+      console.error(`Failed to ${subscribed ? 'subscribe to' : 'unsubscribe from'} ${ticker}:`, error);
+    } finally {
+      setLoadingTickers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(ticker);
+        return newSet;
+      });
+    }
   };
 
   const subscribedCount = subscriptions.filter(sub => sub.subscribed).length;
@@ -102,8 +119,9 @@ const TickerSubscriptions: React.FC<TickerSubscriptionsProps> = ({
                   control={
                     <Checkbox
                       checked={isSubscribed}
-                      onChange={(e) => onSubscriptionChange(ticker, e.target.checked)}
+                      onChange={(e) => handleSubscriptionToggle(ticker, e.target.checked)}
                       size="small"
+                      disabled={loadingTickers.has(ticker)}
                     />
                   }
                   label={
@@ -118,11 +136,13 @@ const TickerSubscriptions: React.FC<TickerSubscriptionsProps> = ({
                       >
                         {ticker}
                       </Typography>
-                      {isSubscribed && (
+                      {loadingTickers.has(ticker) ? (
+                        <CircularProgress size={12} />
+                      ) : isSubscribed ? (
                         <Typography variant="caption" color="success.main">
                           ✓
                         </Typography>
-                      )}
+                      ) : null}
                     </Box>
                   }
                   sx={{ margin: 0, width: '100%' }}
