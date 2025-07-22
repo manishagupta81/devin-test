@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -12,8 +12,10 @@ import {
   CircularProgress,
   Tabs,
   Tab,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
-import { Notifications, NotificationsActive } from '@mui/icons-material';
+import { Notifications, NotificationsActive, Search } from '@mui/icons-material';
 import { TickerSubscription, TeamSubscription } from '../types';
 
 interface SubscriptionsManagerProps {
@@ -37,6 +39,7 @@ const SubscriptionsManager: React.FC<SubscriptionsManagerProps> = ({
   const [loadingTickers, setLoadingTickers] = useState<Set<string>>(new Set());
   const [loadingTeams, setLoadingTeams] = useState<Set<string>>(new Set());
   const [tabValue, setTabValue] = useState(0);
+  const [tickerSearchQuery, setTickerSearchQuery] = useState('');
   const open = Boolean(anchorEl);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -45,6 +48,7 @@ const SubscriptionsManager: React.FC<SubscriptionsManagerProps> = ({
 
   const handleClose = () => {
     setAnchorEl(null);
+    setTickerSearchQuery('');
   };
 
   const handleTickerSubscriptionToggle = async (ticker: string, subscribed: boolean) => {
@@ -76,6 +80,15 @@ const SubscriptionsManager: React.FC<SubscriptionsManagerProps> = ({
       });
     }
   };
+
+  const filteredTickers = useMemo(() => {
+    if (!tickerSearchQuery.trim()) {
+      return availableTickers;
+    }
+    return availableTickers.filter(ticker =>
+      ticker.toLowerCase().includes(tickerSearchQuery.toLowerCase())
+    );
+  }, [availableTickers, tickerSearchQuery]);
 
   const subscribedTickerCount = tickerSubscriptions.filter(sub => sub.subscribed).length;
   const subscribedTeamCount = teamSubscriptions.filter(sub => sub.subscribed).length;
@@ -141,14 +154,42 @@ const SubscriptionsManager: React.FC<SubscriptionsManagerProps> = ({
         
         {tabValue === 0 && (
           <Box>
+            <Box sx={{ px: 2, py: 1 }}>
+              <TextField
+                size="small"
+                placeholder="Search tickers..."
+                value={tickerSearchQuery}
+                onChange={(e) => setTickerSearchQuery(e.target.value)}
+                fullWidth
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '0.875rem',
+                  },
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Box>
             {availableTickers.length === 0 ? (
               <MenuItem disabled>
                 <Typography variant="body2" color="text.secondary">
                   No tickers available
                 </Typography>
               </MenuItem>
+            ) : filteredTickers.length === 0 ? (
+              <MenuItem disabled>
+                <Typography variant="body2" color="text.secondary">
+                  No tickers match "{tickerSearchQuery}"
+                </Typography>
+              </MenuItem>
             ) : (
-              availableTickers.map((ticker) => {
+              filteredTickers.map((ticker) => {
                 const subscription = tickerSubscriptions.find(sub => sub.ticker === ticker);
                 const isSubscribed = subscription?.subscribed || false;
                 
