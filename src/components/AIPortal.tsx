@@ -564,41 +564,77 @@ const AIPortal: React.FC = () => {
     setSelectedTab(newValue);
   };
 
-  const handleDepartmentChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
-    setExpandedDepartment(isExpanded ? panel : false);
+  const handleDepartmentChange = (panel: string) => {
+    setExpandedDepartment(expandedDepartment === panel ? false : panel);
   };
 
-  const getExamplePrompt = (sectionType: string) => {
-    switch (sectionType) {
-      case 'departments':
-        return `Example for Investments Department:
+  const getExamplePrompt = (departmentName: string) => {
+    switch (departmentName.toLowerCase()) {
+      case 'investments':
+        return `### Usecase
+Portfolio Risk Analysis: AI-powered risk assessment for investment portfolios
+Market Sentiment Analysis: Real-time sentiment analysis from news and social media
 
-USE CASES:
-- Portfolio Risk Analysis: AI-powered risk assessment for investment portfolios (Status: active, Priority: high, Owner: Sarah Chen)
-- Market Sentiment Analysis: Real-time sentiment analysis from news and social media (Status: active, Priority: high, Owner: Michael Rodriguez)
+### Status
+Portfolio Risk Analysis: active
+Market Sentiment Analysis: active
 
-PROMPTS & TOOLS:
-- Investment Research Prompt: Comprehensive prompt for analyzing investment opportunities (Category: prompt, Tags: research, analysis, due-diligence, Rating: 4.8, Author: Investment Team)
+### tag
+Portfolio Risk Analysis: high priority, risk-management, portfolio-analysis
+Market Sentiment Analysis: high priority, sentiment-analysis, market-research
 
-WORKSHOPS:
-- AI in Investment Decision Making: Workshop on integrating AI tools into investment processes (Type: past, Date: 2024-01-10, Duration: 2 hours, Instructor: Dr. Emily Watson, Attendees: 28)
+### Prompts
+Investment Research Prompt: Comprehensive prompt for analyzing investment opportunities and due diligence
+Risk Assessment Template: Standardized prompt for evaluating investment risks
 
-TEAM MEMBERS:
-- Sarah Chen: Senior Investment Analyst (Expertise: Portfolio Analysis, Risk Management, AI Tools, Email: sarah.chen@company.com)`;
+### workshop
+AI in Investment Decision Making: Workshop on integrating AI tools into investment processes (Date: 2024-01-10, Duration: 2 hours, Instructor: Dr. Emily Watson, Attendees: 28)
+
+### Team highlights
+Sarah Chen: Senior Investment Analyst (Expertise: Portfolio Analysis, Risk Management, AI Tools, Email: sarah.chen@company.com)
+Michael Rodriguez: Market Research Analyst (Expertise: Sentiment Analysis, Market Trends, Email: michael.rodriguez@company.com)`;
       
-      case 'enablement':
-        return `Example for Gen AI Enablement Resources:
+      case 'client advisors':
+        return `### Usecase
+Client Relationship Enhancement: AI-powered tools for improved client interactions
+Personalized Investment Recommendations: Tailored investment suggestions based on client profiles
 
-TRAINING RESOURCES:
-- AI Fundamentals Course: Comprehensive introduction to AI concepts and applications (Type: training, URL: https://training.company.com/ai-fundamentals)
-- Enterprise AI Training Portal: Centralized learning platform for AI skills development (Type: training, URL: https://training.company.com/ai)
+### Status
+Client Relationship Enhancement: active
+Personalized Investment Recommendations: planned
 
-TOOLS & GUIDES:
-- AI Tool Directory: Comprehensive directory of approved AI tools and applications (Type: tool, URL: https://tools.company.com/ai-directory)
-- Prompt Template Library: Reusable prompt templates for common business scenarios (Type: template)`;
+### tag
+Client Relationship Enhancement: high priority, client-management, relationship-building
+Personalized Investment Recommendations: medium priority, personalization, recommendations
+
+### Prompts
+Client Meeting Preparation: Comprehensive prompt for preparing client meetings
+Investment Recommendation Generator: Template for creating personalized investment recommendations
+
+### workshop
+AI-Enhanced Client Advisory: Training on using AI tools for better client service (Date: 2024-02-15, Duration: 3 hours, Instructor: Jane Smith, Attendees: 35)
+
+### Team highlights
+Alex Johnson: Senior Client Advisor (Expertise: Client Relations, AI Tools, Portfolio Management, Email: alex.johnson@company.com)`;
       
       default:
-        return 'Paste your text content here. AI will generate structured cards based on this input...';
+        return `### Usecase
+[Describe your AI use cases here]
+
+### Status
+[Specify status: active, planned, completed]
+
+### tag
+[Add relevant tags and priorities]
+
+### Prompts
+[List your AI prompts and tools]
+
+### workshop
+[Describe workshops and training sessions]
+
+### Team highlights
+[Highlight key team members and their expertise]`;
     }
   };
 
@@ -835,72 +871,80 @@ TOOLS & GUIDES:
       result.teamMembers = [];
 
       let currentSection = '';
+      let statusData: any = {};
+      let tagData: any = {};
       
       lines.forEach(line => {
         const trimmed = line.trim();
-        if (trimmed.toUpperCase().includes('USE CASES')) {
+        
+        if (trimmed.startsWith('### Usecase')) {
           currentSection = 'useCases';
-        } else if (trimmed.toUpperCase().includes('PROMPTS') || trimmed.toUpperCase().includes('TOOLS')) {
+        } else if (trimmed.startsWith('### Status')) {
+          currentSection = 'status';
+        } else if (trimmed.startsWith('### tag')) {
+          currentSection = 'tags';
+        } else if (trimmed.startsWith('### Prompts')) {
           currentSection = 'promptsTools';
-        } else if (trimmed.toUpperCase().includes('WORKSHOPS')) {
+        } else if (trimmed.startsWith('### workshop')) {
           currentSection = 'workshops';
-        } else if (trimmed.toUpperCase().includes('TEAM')) {
+        } else if (trimmed.startsWith('### Team highlights')) {
           currentSection = 'teamMembers';
-        } else if (trimmed.startsWith('-') && currentSection) {
-          const content = trimmed.substring(1).trim();
+        } else if (trimmed && !trimmed.startsWith('###')) {
           const id = `generated-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           
           if (currentSection === 'useCases') {
-            const [title, ...descParts] = content.split(':');
-            const description = descParts.join(':').trim();
-            const statusMatch = description.match(/Status:\s*(\w+)/i);
-            const priorityMatch = description.match(/Priority:\s*(\w+)/i);
-            const ownerMatch = description.match(/Owner:\s*([^,)]+)/i);
+            const [title, ...descParts] = trimmed.split(':');
+            const description = descParts.join(':').trim() || title.trim();
             
             result.useCases.push({
               id,
               title: title.trim(),
-              description: description.replace(/\(.*?\)/g, '').trim(),
-              status: statusMatch ? statusMatch[1].toLowerCase() : 'planned',
-              priority: priorityMatch ? priorityMatch[1].toLowerCase() : 'medium',
+              description: description,
+              status: 'planned',
+              priority: 'medium',
               department: 'generated',
               lastUpdated: new Date(),
-              owner: ownerMatch ? ownerMatch[1].trim() : 'Unknown'
+              owner: 'Unknown'
             });
+          } else if (currentSection === 'status') {
+            const [title, status] = trimmed.split(':');
+            if (title && status) {
+              statusData[title.trim()] = status.trim().toLowerCase();
+            }
+          } else if (currentSection === 'tags') {
+            const [title, tags] = trimmed.split(':');
+            if (title && tags) {
+              tagData[title.trim()] = tags.split(',').map(t => t.trim());
+            }
           } else if (currentSection === 'promptsTools') {
-            const [title, ...descParts] = content.split(':');
-            const description = descParts.join(':').trim();
-            const categoryMatch = description.match(/Category:\s*(\w+)/i);
-            const tagsMatch = description.match(/Tags:\s*([^,)]+)/i);
-            const ratingMatch = description.match(/Rating:\s*([\d.]+)/i);
-            const authorMatch = description.match(/Author:\s*([^,)]+)/i);
+            const [title, ...descParts] = trimmed.split(':');
+            const description = descParts.join(':').trim() || title.trim();
             
             result.promptsTools.push({
               id,
               title: title.trim(),
-              description: description.replace(/\(.*?\)/g, '').trim(),
-              category: categoryMatch ? categoryMatch[1].toLowerCase() : 'prompt',
+              description: description,
+              category: 'prompt',
               department: 'generated',
-              tags: tagsMatch ? tagsMatch[1].split(',').map(t => t.trim()) : [],
+              tags: [],
               usage: Math.floor(Math.random() * 200) + 50,
-              rating: ratingMatch ? parseFloat(ratingMatch[1]) : 4.0,
+              rating: 4.0,
               lastUpdated: new Date(),
-              author: authorMatch ? authorMatch[1].trim() : 'Unknown'
+              author: 'Generated'
             });
           } else if (currentSection === 'workshops') {
-            const [title, ...descParts] = content.split(':');
-            const description = descParts.join(':').trim();
-            const typeMatch = description.match(/Type:\s*(\w+)/i);
-            const dateMatch = description.match(/Date:\s*([\d-]+)/i);
-            const durationMatch = description.match(/Duration:\s*([^,)]+)/i);
-            const instructorMatch = description.match(/Instructor:\s*([^,)]+)/i);
-            const attendeesMatch = description.match(/Attendees:\s*(\d+)/i);
+            const [title, ...descParts] = trimmed.split(':');
+            const description = descParts.join(':').trim() || title.trim();
+            const dateMatch = description.match(/Date:\s*([\d-]+)/);
+            const durationMatch = description.match(/Duration:\s*([^,)]+)/);
+            const instructorMatch = description.match(/Instructor:\s*([^,)]+)/);
+            const attendeesMatch = description.match(/Attendees:\s*(\d+)/);
             
             result.workshops.push({
               id,
               title: title.trim(),
               description: description.replace(/\(.*?\)/g, '').trim(),
-              type: typeMatch ? typeMatch[1].toLowerCase() : 'upcoming',
+              type: 'past',
               date: dateMatch ? new Date(dateMatch[1]) : new Date(),
               duration: durationMatch ? durationMatch[1].trim() : '1 hour',
               department: 'generated',
@@ -908,10 +952,10 @@ TOOLS & GUIDES:
               attendees: attendeesMatch ? parseInt(attendeesMatch[1]) : 0
             });
           } else if (currentSection === 'teamMembers') {
-            const [name, ...roleParts] = content.split(':');
+            const [name, ...roleParts] = trimmed.split(':');
             const roleAndDetails = roleParts.join(':').trim();
-            const expertiseMatch = roleAndDetails.match(/Expertise:\s*([^,)]+)/i);
-            const emailMatch = roleAndDetails.match(/Email:\s*([^,)]+)/i);
+            const expertiseMatch = roleAndDetails.match(/Expertise:\s*([^,)]+)/);
+            const emailMatch = roleAndDetails.match(/Email:\s*([^,)]+)/);
             
             result.teamMembers.push({
               id,
@@ -924,32 +968,25 @@ TOOLS & GUIDES:
           }
         }
       });
-    } else if (sectionType === 'enablement') {
-      result.resources = [];
-      let currentSection = '';
-      
-      lines.forEach(line => {
-        const trimmed = line.trim();
-        if (trimmed.toUpperCase().includes('TRAINING') || trimmed.toUpperCase().includes('RESOURCES')) {
-          currentSection = 'resources';
-        } else if (trimmed.toUpperCase().includes('TOOLS') || trimmed.toUpperCase().includes('GUIDES')) {
-          currentSection = 'resources';
-        } else if (trimmed.startsWith('-') && currentSection === 'resources') {
-          const content = trimmed.substring(1).trim();
-          const [title, ...descParts] = content.split(':');
-          const description = descParts.join(':').trim();
-          const typeMatch = description.match(/Type:\s*(\w+)/i);
-          const urlMatch = description.match(/URL:\s*(https?:\/\/[^\s,)]+)/i);
-          const id = `generated-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          
-          result.resources.push({
-            id,
-            title: title.trim(),
-            description: description.replace(/\(.*?\)/g, '').trim(),
-            type: typeMatch ? typeMatch[1].toLowerCase() : 'guide',
-            url: urlMatch ? urlMatch[1] : undefined,
-            lastUpdated: new Date()
-          });
+
+      result.useCases.forEach((useCase: any) => {
+        if (statusData[useCase.title]) {
+          useCase.status = statusData[useCase.title];
+        }
+        if (tagData[useCase.title]) {
+          const tags = tagData[useCase.title];
+          const priorityTag = tags.find((tag: string) => tag.includes('priority'));
+          if (priorityTag) {
+            if (priorityTag.includes('high')) useCase.priority = 'high';
+            else if (priorityTag.includes('low')) useCase.priority = 'low';
+            else useCase.priority = 'medium';
+          }
+        }
+      });
+
+      result.promptsTools.forEach((prompt: any) => {
+        if (tagData[prompt.title]) {
+          prompt.tags = tagData[prompt.title];
         }
       });
     }
@@ -980,24 +1017,24 @@ TOOLS & GUIDES:
     setShowContentGenerator(null);
   };
 
-  const renderContentGenerator = (sectionType: string) => (
+  const renderContentGenerator = (departmentName: string) => (
     <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
       <Typography variant="h6" sx={{ mb: 2 }}>
-        AI Content Generator - {sectionType}
+        AI Content Generator - {departmentName}
       </Typography>
       <TextField
         fullWidth
         multiline
-        rows={8}
+        rows={10}
         value={textInput}
         onChange={(e) => setTextInput(e.target.value)}
-        placeholder={getExamplePrompt(sectionType)}
+        placeholder={getExamplePrompt(departmentName)}
         sx={{ mb: 2 }}
       />
       <Box sx={{ display: 'flex', gap: 1 }}>
         <Button 
           variant="contained" 
-          onClick={() => handleGenerateContent(sectionType)}
+          onClick={() => handleGenerateContent('departments')}
           disabled={!textInput.trim()}
         >
           Generate Content
@@ -1010,7 +1047,7 @@ TOOLS & GUIDES:
         </Button>
         <Button 
           variant="text" 
-          onClick={() => setTextInput(getExamplePrompt(sectionType))}
+          onClick={() => setTextInput(getExamplePrompt(departmentName))}
         >
           Load Example
         </Button>
@@ -1018,86 +1055,103 @@ TOOLS & GUIDES:
     </Paper>
   );
 
-  const renderDepartmentSection = (department: AIDepartment) => (
-    <Accordion
-      key={department.id}
-      expanded={expandedDepartment === department.id}
-      onChange={handleDepartmentChange(department.id)}
-      sx={{ mb: 2 }}
-    >
-      <AccordionSummary expandIcon={<ExpandMore />}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {getDepartmentIcon(department.id)}
-          <Box>
-            <Typography variant="h6">{department.name}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {department.description}
-            </Typography>
-          </Box>
-        </Box>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Tabs value={selectedTab} onChange={handleTabChange} sx={{ mb: 3 }}>
-          <Tab label={`Use Cases (${department.useCases.length})`} />
-          <Tab label={`Tools & Prompts (${department.promptsTools.length})`} />
-          <Tab label={`Workshops (${department.workshops.length})`} />
-          <Tab label={`Team (${department.teamMembers.length})`} />
-        </Tabs>
-
-        {selectedTab === 0 && (
-          <Box>
-            <Typography variant="h6" sx={{ mb: 2 }}>Active & High-Priority Use Cases</Typography>
-            {department.useCases.length > 0 ? (
-              department.useCases.map(renderUseCase)
-            ) : (
+  const renderDepartmentSection = (department: AIDepartment) => {
+    return (
+      <Accordion
+        key={department.id}
+        expanded={expandedDepartment === department.id}
+        onChange={() => handleDepartmentChange(department.id)}
+        sx={{ mb: 2 }}
+      >
+        <AccordionSummary expandIcon={<ExpandMore />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+            {getDepartmentIcon(department.name)}
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6">{department.name}</Typography>
               <Typography variant="body2" color="text.secondary">
-                No use cases available for this department.
+                {department.description}
               </Typography>
+            </Box>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowContentGenerator(department.id);
+              }}
+              sx={{ ml: 'auto' }}
+            >
+              Generate from Text
+            </Button>
+          </Box>
+        </AccordionSummary>
+        <AccordionDetails>
+          {showContentGenerator === department.id && renderContentGenerator(department.name)}
+          
+          <Tabs value={selectedTab} onChange={handleTabChange} sx={{ mb: 3 }}>
+            <Tab label={`Use Cases (${department.useCases.length})`} />
+            <Tab label={`Tools & Prompts (${department.promptsTools.length})`} />
+            <Tab label={`Workshops (${department.workshops.length})`} />
+            <Tab label={`Team (${department.teamMembers.length})`} />
+          </Tabs>
+
+          <Box>
+            {selectedTab === 0 && (
+              <>
+                <Typography variant="h6" sx={{ mb: 2 }}>Active & High-Priority Use Cases</Typography>
+                {department.useCases.length > 0 ? (
+                  department.useCases.map(renderUseCase)
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No use cases available for this department.
+                  </Typography>
+                )}
+              </>
+            )}
+
+            {selectedTab === 1 && (
+              <>
+                <Typography variant="h6" sx={{ mb: 2 }}>Reusable Prompts & Tools</Typography>
+                {department.promptsTools.length > 0 ? (
+                  department.promptsTools.map(renderPromptTool)
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No prompts or tools available for this department.
+                  </Typography>
+                )}
+              </>
+            )}
+
+            {selectedTab === 2 && (
+              <>
+                <Typography variant="h6" sx={{ mb: 2 }}>Workshops & Training</Typography>
+                {department.workshops.length > 0 ? (
+                  department.workshops.map(renderWorkshop)
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No workshops scheduled for this department.
+                  </Typography>
+                )}
+              </>
+            )}
+
+            {selectedTab === 3 && (
+              <>
+                <Typography variant="h6" sx={{ mb: 2 }}>Team Highlights</Typography>
+                {department.teamMembers.length > 0 ? (
+                  department.teamMembers.map(renderTeamMember)
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No team members listed for this department.
+                  </Typography>
+                )}
+              </>
             )}
           </Box>
-        )}
-
-        {selectedTab === 1 && (
-          <Box>
-            <Typography variant="h6" sx={{ mb: 2 }}>Reusable Prompts & Tools</Typography>
-            {department.promptsTools.length > 0 ? (
-              department.promptsTools.map(renderPromptTool)
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                No prompts or tools available for this department.
-              </Typography>
-            )}
-          </Box>
-        )}
-
-        {selectedTab === 2 && (
-          <Box>
-            <Typography variant="h6" sx={{ mb: 2 }}>Workshops & Training</Typography>
-            {department.workshops.length > 0 ? (
-              department.workshops.map(renderWorkshop)
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                No workshops scheduled for this department.
-              </Typography>
-            )}
-          </Box>
-        )}
-
-        {selectedTab === 3 && (
-          <Box>
-            <Typography variant="h6" sx={{ mb: 2 }}>Team Highlights</Typography>
-            {department.teamMembers.length > 0 ? (
-              department.teamMembers.map(renderTeamMember)
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                No team members listed for this department.
-              </Typography>
-            )}
-          </Box>
-        )}
-      </AccordionDetails>
-    </Accordion>
-  );
+        </AccordionDetails>
+      </Accordion>
+    );
+  };
 
   return (
     <Box>
@@ -1110,40 +1164,20 @@ TOOLS & GUIDES:
 
       {/* Departmental Sections */}
       <Paper sx={{ p: 3, mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-            Departmental AI Initiatives
-          </Typography>
-          <Button 
-            variant="outlined" 
-            size="small"
-            onClick={() => setShowContentGenerator('departments')}
-          >
-            Generate from Text
-          </Button>
-        </Box>
-        {showContentGenerator === 'departments' && renderContentGenerator('Departmental Content')}
+        <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3 }}>
+          Departmental AI Initiatives
+        </Typography>
         {departments.map(renderDepartmentSection)}
       </Paper>
 
       {/* Gen AI Enablement/Training/Workshops Announcements */}
       <Paper sx={{ p: 3, mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-            Gen AI Enablement/Training/Workshops Announcements
-          </Typography>
-          <Button 
-            variant="outlined" 
-            size="small"
-            onClick={() => setShowContentGenerator('enablement')}
-          >
-            Generate from Text
-          </Button>
-        </Box>
+        <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+          Gen AI Enablement/Training/Workshops Announcements
+        </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Organization-wide training resources, onboarding kits, and links to internal AI tools and learning journeys.
         </Typography>
-        {showContentGenerator === 'enablement' && renderContentGenerator('Enablement Resources')}
         <Grid container spacing={3}>
           {enablementResources.map((resource) => (
             <Grid key={resource.id} size={{ xs: 12, md: 6 }}>
@@ -1196,22 +1230,12 @@ TOOLS & GUIDES:
 
       {/* AI Best Practices and AI Security Framework */}
       <Paper sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-            AI Best Practices and AI Security Framework
-          </Typography>
-          <Button 
-            variant="outlined" 
-            size="small"
-            onClick={() => setShowContentGenerator('best-practices')}
-          >
-            Generate from Text
-          </Button>
-        </Box>
+        <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+          AI Best Practices and AI Security Framework
+        </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           AI governance guidelines, ethical considerations, model usage policies, and enterprise prompting standards.
         </Typography>
-        {showContentGenerator === 'best-practices' && renderContentGenerator('Best Practices')}
         <Grid container spacing={3}>
           {bestPractices.map((practice) => (
             <Grid key={practice.id} size={{ xs: 12, md: 6 }}>
