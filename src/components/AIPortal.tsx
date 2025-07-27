@@ -40,6 +40,7 @@ import {
   Star,
   Launch,
   Email,
+  Edit,
 } from '@mui/icons-material';
 import {
   AIDepartment,
@@ -554,6 +555,10 @@ const AIPortal: React.FC = () => {
   const [expandedDepartment, setExpandedDepartment] = useState<string | false>('investments');
   const [textInput, setTextInput] = useState('');
   const [showContentGenerator, setShowContentGenerator] = useState<string | null>(null);
+  const [departments, setDepartments] = useState<AIDepartment[]>(mockDepartments);
+  const [enablementResources, setEnablementResources] = useState<AIEnablementResource[]>(mockEnablementResources);
+  const [bestPractices, setBestPractices] = useState<AIBestPractice[]>(mockBestPractices);
+  const [editingItem, setEditingItem] = useState<{type: string, id: string} | null>(null);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
@@ -561,6 +566,40 @@ const AIPortal: React.FC = () => {
 
   const handleDepartmentChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpandedDepartment(isExpanded ? panel : false);
+  };
+
+  const getExamplePrompt = (sectionType: string) => {
+    switch (sectionType) {
+      case 'departments':
+        return `Example for Investments Department:
+
+USE CASES:
+- Portfolio Risk Analysis: AI-powered risk assessment for investment portfolios (Status: active, Priority: high, Owner: Sarah Chen)
+- Market Sentiment Analysis: Real-time sentiment analysis from news and social media (Status: active, Priority: high, Owner: Michael Rodriguez)
+
+PROMPTS & TOOLS:
+- Investment Research Prompt: Comprehensive prompt for analyzing investment opportunities (Category: prompt, Tags: research, analysis, due-diligence, Rating: 4.8, Author: Investment Team)
+
+WORKSHOPS:
+- AI in Investment Decision Making: Workshop on integrating AI tools into investment processes (Type: past, Date: 2024-01-10, Duration: 2 hours, Instructor: Dr. Emily Watson, Attendees: 28)
+
+TEAM MEMBERS:
+- Sarah Chen: Senior Investment Analyst (Expertise: Portfolio Analysis, Risk Management, AI Tools, Email: sarah.chen@company.com)`;
+      
+      case 'enablement':
+        return `Example for Gen AI Enablement Resources:
+
+TRAINING RESOURCES:
+- AI Fundamentals Course: Comprehensive introduction to AI concepts and applications (Type: training, URL: https://training.company.com/ai-fundamentals)
+- Enterprise AI Training Portal: Centralized learning platform for AI skills development (Type: training, URL: https://training.company.com/ai)
+
+TOOLS & GUIDES:
+- AI Tool Directory: Comprehensive directory of approved AI tools and applications (Type: tool, URL: https://tools.company.com/ai-directory)
+- Prompt Template Library: Reusable prompt templates for common business scenarios (Type: template)`;
+      
+      default:
+        return 'Paste your text content here. AI will generate structured cards based on this input...';
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -620,7 +659,14 @@ const AIPortal: React.FC = () => {
           <Typography variant="h6" component="h3">
             {useCase.title}
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <IconButton 
+              size="small" 
+              onClick={() => setEditingItem({type: 'useCase', id: useCase.id})}
+              sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}
+            >
+              <Edit fontSize="small" />
+            </IconButton>
             <Chip 
               label={useCase.status} 
               color={getStatusColor(useCase.status) as any}
@@ -656,12 +702,21 @@ const AIPortal: React.FC = () => {
           <Typography variant="h6" component="h3">
             {tool.title}
           </Typography>
-          <Chip 
-            label={tool.category} 
-            color="primary"
-            size="small"
-            variant="outlined"
-          />
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <IconButton 
+              size="small" 
+              onClick={() => setEditingItem({type: 'promptTool', id: tool.id})}
+              sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}
+            >
+              <Edit fontSize="small" />
+            </IconButton>
+            <Chip 
+              label={tool.category} 
+              color="primary"
+              size="small"
+              variant="outlined"
+            />
+          </Box>
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {tool.description}
@@ -696,11 +751,20 @@ const AIPortal: React.FC = () => {
           <Typography variant="h6" component="h3">
             {workshop.title}
           </Typography>
-          <Chip 
-            label={workshop.type} 
-            color={workshop.type === 'upcoming' ? 'success' : 'default'}
-            size="small"
-          />
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <IconButton 
+              size="small" 
+              onClick={() => setEditingItem({type: 'workshop', id: workshop.id})}
+              sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}
+            >
+              <Edit fontSize="small" />
+            </IconButton>
+            <Chip 
+              label={workshop.type} 
+              color={workshop.type === 'upcoming' ? 'success' : 'default'}
+              size="small"
+            />
+          </Box>
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {workshop.description}
@@ -738,6 +802,13 @@ const AIPortal: React.FC = () => {
               {member.role}
             </Typography>
           </Box>
+          <IconButton 
+            size="small" 
+            onClick={() => setEditingItem({type: 'teamMember', id: member.id})}
+            sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}
+          >
+            <Edit fontSize="small" />
+          </IconButton>
           <Tooltip title="Send Email">
             <IconButton size="small" href={`mailto:${member.email}`}>
               <Email />
@@ -753,8 +824,158 @@ const AIPortal: React.FC = () => {
     </Card>
   );
 
+  const parseTextToStructuredData = (text: string, sectionType: string) => {
+    const lines = text.split('\n').filter(line => line.trim());
+    const result: any = {};
+
+    if (sectionType === 'departments') {
+      result.useCases = [];
+      result.promptsTools = [];
+      result.workshops = [];
+      result.teamMembers = [];
+
+      let currentSection = '';
+      
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed.toUpperCase().includes('USE CASES')) {
+          currentSection = 'useCases';
+        } else if (trimmed.toUpperCase().includes('PROMPTS') || trimmed.toUpperCase().includes('TOOLS')) {
+          currentSection = 'promptsTools';
+        } else if (trimmed.toUpperCase().includes('WORKSHOPS')) {
+          currentSection = 'workshops';
+        } else if (trimmed.toUpperCase().includes('TEAM')) {
+          currentSection = 'teamMembers';
+        } else if (trimmed.startsWith('-') && currentSection) {
+          const content = trimmed.substring(1).trim();
+          const id = `generated-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          
+          if (currentSection === 'useCases') {
+            const [title, ...descParts] = content.split(':');
+            const description = descParts.join(':').trim();
+            const statusMatch = description.match(/Status:\s*(\w+)/i);
+            const priorityMatch = description.match(/Priority:\s*(\w+)/i);
+            const ownerMatch = description.match(/Owner:\s*([^,)]+)/i);
+            
+            result.useCases.push({
+              id,
+              title: title.trim(),
+              description: description.replace(/\(.*?\)/g, '').trim(),
+              status: statusMatch ? statusMatch[1].toLowerCase() : 'planned',
+              priority: priorityMatch ? priorityMatch[1].toLowerCase() : 'medium',
+              department: 'generated',
+              lastUpdated: new Date(),
+              owner: ownerMatch ? ownerMatch[1].trim() : 'Unknown'
+            });
+          } else if (currentSection === 'promptsTools') {
+            const [title, ...descParts] = content.split(':');
+            const description = descParts.join(':').trim();
+            const categoryMatch = description.match(/Category:\s*(\w+)/i);
+            const tagsMatch = description.match(/Tags:\s*([^,)]+)/i);
+            const ratingMatch = description.match(/Rating:\s*([\d.]+)/i);
+            const authorMatch = description.match(/Author:\s*([^,)]+)/i);
+            
+            result.promptsTools.push({
+              id,
+              title: title.trim(),
+              description: description.replace(/\(.*?\)/g, '').trim(),
+              category: categoryMatch ? categoryMatch[1].toLowerCase() : 'prompt',
+              department: 'generated',
+              tags: tagsMatch ? tagsMatch[1].split(',').map(t => t.trim()) : [],
+              usage: Math.floor(Math.random() * 200) + 50,
+              rating: ratingMatch ? parseFloat(ratingMatch[1]) : 4.0,
+              lastUpdated: new Date(),
+              author: authorMatch ? authorMatch[1].trim() : 'Unknown'
+            });
+          } else if (currentSection === 'workshops') {
+            const [title, ...descParts] = content.split(':');
+            const description = descParts.join(':').trim();
+            const typeMatch = description.match(/Type:\s*(\w+)/i);
+            const dateMatch = description.match(/Date:\s*([\d-]+)/i);
+            const durationMatch = description.match(/Duration:\s*([^,)]+)/i);
+            const instructorMatch = description.match(/Instructor:\s*([^,)]+)/i);
+            const attendeesMatch = description.match(/Attendees:\s*(\d+)/i);
+            
+            result.workshops.push({
+              id,
+              title: title.trim(),
+              description: description.replace(/\(.*?\)/g, '').trim(),
+              type: typeMatch ? typeMatch[1].toLowerCase() : 'upcoming',
+              date: dateMatch ? new Date(dateMatch[1]) : new Date(),
+              duration: durationMatch ? durationMatch[1].trim() : '1 hour',
+              department: 'generated',
+              instructor: instructorMatch ? instructorMatch[1].trim() : 'TBD',
+              attendees: attendeesMatch ? parseInt(attendeesMatch[1]) : 0
+            });
+          } else if (currentSection === 'teamMembers') {
+            const [name, ...roleParts] = content.split(':');
+            const roleAndDetails = roleParts.join(':').trim();
+            const expertiseMatch = roleAndDetails.match(/Expertise:\s*([^,)]+)/i);
+            const emailMatch = roleAndDetails.match(/Email:\s*([^,)]+)/i);
+            
+            result.teamMembers.push({
+              id,
+              name: name.trim(),
+              role: roleAndDetails.replace(/\(.*?\)/g, '').trim(),
+              department: 'generated',
+              expertise: expertiseMatch ? expertiseMatch[1].split(',').map(e => e.trim()) : [],
+              email: emailMatch ? emailMatch[1].trim() : 'unknown@company.com'
+            });
+          }
+        }
+      });
+    } else if (sectionType === 'enablement') {
+      result.resources = [];
+      let currentSection = '';
+      
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed.toUpperCase().includes('TRAINING') || trimmed.toUpperCase().includes('RESOURCES')) {
+          currentSection = 'resources';
+        } else if (trimmed.toUpperCase().includes('TOOLS') || trimmed.toUpperCase().includes('GUIDES')) {
+          currentSection = 'resources';
+        } else if (trimmed.startsWith('-') && currentSection === 'resources') {
+          const content = trimmed.substring(1).trim();
+          const [title, ...descParts] = content.split(':');
+          const description = descParts.join(':').trim();
+          const typeMatch = description.match(/Type:\s*(\w+)/i);
+          const urlMatch = description.match(/URL:\s*(https?:\/\/[^\s,)]+)/i);
+          const id = `generated-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          
+          result.resources.push({
+            id,
+            title: title.trim(),
+            description: description.replace(/\(.*?\)/g, '').trim(),
+            type: typeMatch ? typeMatch[1].toLowerCase() : 'guide',
+            url: urlMatch ? urlMatch[1] : undefined,
+            lastUpdated: new Date()
+          });
+        }
+      });
+    }
+
+    return result;
+  };
+
   const handleGenerateContent = (sectionType: string) => {
     console.log(`Generating content for ${sectionType} from text:`, textInput);
+    
+    const parsedData = parseTextToStructuredData(textInput, sectionType);
+    
+    if (sectionType === 'departments') {
+      const updatedDepartments = [...departments];
+      if (updatedDepartments.length > 0) {
+        const targetDept = updatedDepartments[0];
+        targetDept.useCases = [...targetDept.useCases, ...parsedData.useCases];
+        targetDept.promptsTools = [...targetDept.promptsTools, ...parsedData.promptsTools];
+        targetDept.workshops = [...targetDept.workshops, ...parsedData.workshops];
+        targetDept.teamMembers = [...targetDept.teamMembers, ...parsedData.teamMembers];
+        setDepartments(updatedDepartments);
+      }
+    } else if (sectionType === 'enablement') {
+      setEnablementResources([...enablementResources, ...parsedData.resources]);
+    }
+    
     setTextInput('');
     setShowContentGenerator(null);
   };
@@ -767,10 +988,10 @@ const AIPortal: React.FC = () => {
       <TextField
         fullWidth
         multiline
-        rows={4}
+        rows={8}
         value={textInput}
         onChange={(e) => setTextInput(e.target.value)}
-        placeholder="Paste your text content here. AI will generate structured cards based on this input..."
+        placeholder={getExamplePrompt(sectionType)}
         sx={{ mb: 2 }}
       />
       <Box sx={{ display: 'flex', gap: 1 }}>
@@ -786,6 +1007,12 @@ const AIPortal: React.FC = () => {
           onClick={() => setShowContentGenerator(null)}
         >
           Cancel
+        </Button>
+        <Button 
+          variant="text" 
+          onClick={() => setTextInput(getExamplePrompt(sectionType))}
+        >
+          Load Example
         </Button>
       </Box>
     </Paper>
@@ -896,7 +1123,7 @@ const AIPortal: React.FC = () => {
           </Button>
         </Box>
         {showContentGenerator === 'departments' && renderContentGenerator('Departmental Content')}
-        {mockDepartments.map(renderDepartmentSection)}
+        {departments.map(renderDepartmentSection)}
       </Paper>
 
       {/* Gen AI Enablement/Training/Workshops Announcements */}
@@ -918,7 +1145,7 @@ const AIPortal: React.FC = () => {
         </Typography>
         {showContentGenerator === 'enablement' && renderContentGenerator('Enablement Resources')}
         <Grid container spacing={3}>
-          {mockEnablementResources.map((resource) => (
+          {enablementResources.map((resource) => (
             <Grid key={resource.id} size={{ xs: 12, md: 6 }}>
               <Card>
                 <CardContent>
@@ -926,12 +1153,21 @@ const AIPortal: React.FC = () => {
                     <Typography variant="h6" component="h3">
                       {resource.title}
                     </Typography>
-                    <Chip 
-                      label={resource.type} 
-                      color="primary"
-                      size="small"
-                      variant="outlined"
-                    />
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => setEditingItem({type: 'enablementResource', id: resource.id})}
+                        sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}
+                      >
+                        <Edit fontSize="small" />
+                      </IconButton>
+                      <Chip 
+                        label={resource.type} 
+                        color="primary"
+                        size="small"
+                        variant="outlined"
+                      />
+                    </Box>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     {resource.description}
@@ -977,7 +1213,7 @@ const AIPortal: React.FC = () => {
         </Typography>
         {showContentGenerator === 'best-practices' && renderContentGenerator('Best Practices')}
         <Grid container spacing={3}>
-          {mockBestPractices.map((practice) => (
+          {bestPractices.map((practice) => (
             <Grid key={practice.id} size={{ xs: 12, md: 6 }}>
               <Card>
                 <CardContent>
@@ -988,11 +1224,20 @@ const AIPortal: React.FC = () => {
                         {practice.title}
                       </Typography>
                     </Box>
-                    <Chip 
-                      label={practice.importance} 
-                      color={getImportanceColor(practice.importance) as any}
-                      size="small"
-                    />
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => setEditingItem({type: 'bestPractice', id: practice.id})}
+                        sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}
+                      >
+                        <Edit fontSize="small" />
+                      </IconButton>
+                      <Chip 
+                        label={practice.importance} 
+                        color={getImportanceColor(practice.importance) as any}
+                        size="small"
+                      />
+                    </Box>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     {practice.description}
