@@ -405,7 +405,13 @@ function App() {
         >
           <Toolbar />
           
-          {!selectedDepartment ? (
+          {/* AI Portal - Independent of department selection */}
+          {selectedMenuItem === 'ai-portal' && (
+            <AIPortal />
+          )}
+          
+          {/* Department-dependent content */}
+          {selectedMenuItem !== 'ai-portal' && !selectedDepartment ? (
             <Box sx={{ 
               display: 'flex',
               alignItems: 'center',
@@ -423,7 +429,7 @@ function App() {
                 </Typography>
               </Box>
             </Box>
-          ) : (
+          ) : selectedMenuItem !== 'ai-portal' && selectedDepartment ? (
             <Box>
               {(selectedMenuItem === 'overview' || selectedMenuItem === 'ai-reports' || selectedMenuItem === 'external-files' || selectedMenuItem === 'internal-research') && (
                 <>
@@ -436,10 +442,6 @@ function App() {
                     category={getFileCategory()}
                   />
                 </>
-              )}
-              
-              {selectedMenuItem === 'ai-portal' && (
-                <AIPortal />
               )}
               
               {selectedMenuItem === 'agents' && (
@@ -464,7 +466,7 @@ function App() {
                 </Box>
               )}
             </Box>
-          )}
+          ) : null}
         </Box>
       </Box>
     </ThemeProvider>

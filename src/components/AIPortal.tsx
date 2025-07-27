@@ -23,6 +23,7 @@ import {
   Tabs,
   Badge,
   Rating,
+  TextField,
 } from '@mui/material';
 import {
   ExpandMore,
@@ -405,6 +406,79 @@ const mockDepartments: AIDepartment[] = [
       },
     ],
   },
+  {
+    id: 'technology',
+    name: 'Technology',
+    description: 'AI-powered software development and infrastructure automation',
+    useCases: [
+      {
+        id: 'tech-1',
+        title: 'Code Review Assistant',
+        description: 'AI-powered code review and quality analysis',
+        status: 'active',
+        priority: 'high',
+        department: 'technology',
+        lastUpdated: new Date('2024-01-25'),
+        owner: 'Alex Johnson',
+      },
+      {
+        id: 'tech-2',
+        title: 'Infrastructure Monitoring',
+        description: 'AI-driven system monitoring and anomaly detection',
+        status: 'active',
+        priority: 'medium',
+        department: 'technology',
+        lastUpdated: new Date('2024-01-23'),
+        owner: 'Sam Wilson',
+      },
+    ],
+    promptsTools: [
+      {
+        id: 'tech-p1',
+        title: 'Development Best Practices',
+        description: 'AI prompts for code quality and development standards',
+        category: 'prompt',
+        department: 'technology',
+        tags: ['development', 'code-quality', 'best-practices'],
+        usage: 167,
+        rating: 4.7,
+        lastUpdated: new Date('2024-01-20'),
+        author: 'Tech Team',
+      },
+    ],
+    workshops: [
+      {
+        id: 'tech-w1',
+        title: 'AI in Software Development',
+        description: 'Leveraging AI tools for enhanced development workflows',
+        type: 'upcoming',
+        date: new Date('2024-03-05'),
+        duration: '2.5 hours',
+        department: 'technology',
+        instructor: 'Dr. Rachel Green',
+        attendees: 18,
+        maxAttendees: 35,
+      },
+    ],
+    teamMembers: [
+      {
+        id: 'tech-t1',
+        name: 'Alex Johnson',
+        role: 'Senior Software Engineer',
+        department: 'technology',
+        expertise: ['AI Tools', 'Code Review', 'System Architecture'],
+        email: 'alex.johnson@company.com',
+      },
+      {
+        id: 'tech-t2',
+        name: 'Sam Wilson',
+        role: 'DevOps Engineer',
+        department: 'technology',
+        expertise: ['Infrastructure', 'Monitoring', 'Automation'],
+        email: 'sam.wilson@company.com',
+      },
+    ],
+  },
 ];
 
 const mockBestPractices: AIBestPractice[] = [
@@ -478,6 +552,8 @@ const mockEnablementResources: AIEnablementResource[] = [
 const AIPortal: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState(0);
   const [expandedDepartment, setExpandedDepartment] = useState<string | false>('investments');
+  const [textInput, setTextInput] = useState('');
+  const [showContentGenerator, setShowContentGenerator] = useState<string | null>(null);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
@@ -532,6 +608,7 @@ const AIPortal: React.FC = () => {
       case 'wealth-planning': return <Business />;
       case 'finance': return <AccountBalance />;
       case 'compliance-legal': return <Gavel />;
+      case 'technology': return <Code />;
       default: return <Business />;
     }
   };
@@ -676,6 +753,44 @@ const AIPortal: React.FC = () => {
     </Card>
   );
 
+  const handleGenerateContent = (sectionType: string) => {
+    console.log(`Generating content for ${sectionType} from text:`, textInput);
+    setTextInput('');
+    setShowContentGenerator(null);
+  };
+
+  const renderContentGenerator = (sectionType: string) => (
+    <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        AI Content Generator - {sectionType}
+      </Typography>
+      <TextField
+        fullWidth
+        multiline
+        rows={4}
+        value={textInput}
+        onChange={(e) => setTextInput(e.target.value)}
+        placeholder="Paste your text content here. AI will generate structured cards based on this input..."
+        sx={{ mb: 2 }}
+      />
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <Button 
+          variant="contained" 
+          onClick={() => handleGenerateContent(sectionType)}
+          disabled={!textInput.trim()}
+        >
+          Generate Content
+        </Button>
+        <Button 
+          variant="outlined" 
+          onClick={() => setShowContentGenerator(null)}
+        >
+          Cancel
+        </Button>
+      </Box>
+    </Paper>
+  );
+
   const renderDepartmentSection = (department: AIDepartment) => (
     <Accordion
       key={department.id}
@@ -768,20 +883,40 @@ const AIPortal: React.FC = () => {
 
       {/* Departmental Sections */}
       <Paper sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>
-          Departmental AI Initiatives
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+            Departmental AI Initiatives
+          </Typography>
+          <Button 
+            variant="outlined" 
+            size="small"
+            onClick={() => setShowContentGenerator('departments')}
+          >
+            Generate from Text
+          </Button>
+        </Box>
+        {showContentGenerator === 'departments' && renderContentGenerator('Departmental Content')}
         {mockDepartments.map(renderDepartmentSection)}
       </Paper>
 
-      {/* Global Enablement Layer */}
+      {/* Gen AI Enablement/Training/Workshops Announcements */}
       <Paper sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>
-          Global Enablement Layer
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+            Gen AI Enablement/Training/Workshops Announcements
+          </Typography>
+          <Button 
+            variant="outlined" 
+            size="small"
+            onClick={() => setShowContentGenerator('enablement')}
+          >
+            Generate from Text
+          </Button>
+        </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Organization-wide training resources, onboarding kits, and links to internal AI tools and learning journeys.
         </Typography>
+        {showContentGenerator === 'enablement' && renderContentGenerator('Enablement Resources')}
         <Grid container spacing={3}>
           {mockEnablementResources.map((resource) => (
             <Grid key={resource.id} size={{ xs: 12, md: 6 }}>
@@ -823,14 +958,24 @@ const AIPortal: React.FC = () => {
         </Grid>
       </Paper>
 
-      {/* Global AI Best Practices and Ethics */}
+      {/* AI Best Practices and AI Security Framework */}
       <Paper sx={{ p: 3 }}>
-        <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>
-          AI Best Practices & Ethics
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+            AI Best Practices and AI Security Framework
+          </Typography>
+          <Button 
+            variant="outlined" 
+            size="small"
+            onClick={() => setShowContentGenerator('best-practices')}
+          >
+            Generate from Text
+          </Button>
+        </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           AI governance guidelines, ethical considerations, model usage policies, and enterprise prompting standards.
         </Typography>
+        {showContentGenerator === 'best-practices' && renderContentGenerator('Best Practices')}
         <Grid container spacing={3}>
           {mockBestPractices.map((practice) => (
             <Grid key={practice.id} size={{ xs: 12, md: 6 }}>
