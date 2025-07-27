@@ -27,11 +27,13 @@ import {
   Science,
   Android as AndroidIcon,
   ExpandLess,
+  Psychology,
 } from '@mui/icons-material';
 import { FileItem, FileCategory, TickerSubscription, TeamSubscription } from './types';
 import FileList from './components/FileList';
 import FileUpload from './components/FileUpload';
 import SubscriptionsManager from './components/SubscriptionsManager';
+import AIPortal from './components/AIPortal';
 
 const theme = createTheme({
   palette: {
@@ -101,6 +103,7 @@ function App() {
     { id: 'ai-reports', label: 'AI Generated Reports', icon: <SmartToy /> },
     { id: 'external-files', label: 'External Files', icon: <FolderOpen /> },
     { id: 'internal-research', label: 'Internal Research', icon: <Science /> },
+    { id: 'ai-portal', label: 'AI Portal', icon: <Psychology /> },
     { id: 'agents', label: 'Agents', icon: <AndroidIcon /> },
     { id: 'settings', label: 'Settings', icon: <Settings /> },
   ];
@@ -402,7 +405,13 @@ function App() {
         >
           <Toolbar />
           
-          {!selectedDepartment ? (
+          {/* AI Portal - Independent of department selection */}
+          {selectedMenuItem === 'ai-portal' && (
+            <AIPortal />
+          )}
+          
+          {/* Department-dependent content */}
+          {selectedMenuItem !== 'ai-portal' && !selectedDepartment ? (
             <Box sx={{ 
               display: 'flex',
               alignItems: 'center',
@@ -420,7 +429,7 @@ function App() {
                 </Typography>
               </Box>
             </Box>
-          ) : (
+          ) : selectedMenuItem !== 'ai-portal' && selectedDepartment ? (
             <Box>
               {(selectedMenuItem === 'overview' || selectedMenuItem === 'ai-reports' || selectedMenuItem === 'external-files' || selectedMenuItem === 'internal-research') && (
                 <>
@@ -457,7 +466,7 @@ function App() {
                 </Box>
               )}
             </Box>
-          )}
+          ) : null}
         </Box>
       </Box>
     </ThemeProvider>
