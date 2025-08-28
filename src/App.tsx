@@ -447,20 +447,57 @@ function App() {
                       <Card elevation={2}>
                         <CardContent>
                           <Typography variant="h6" gutterBottom>
-                            Create IRN
+                            IRN Management
                           </Typography>
                           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            Create an Internal Research Note with rich text content
+                            Upload existing IRN files or create new Internal Research Notes
                           </Typography>
-                          <Button
-                            variant="contained"
-                            onClick={() => setIrnEditorOpen(true)}
-                            startIcon={<NoteAdd />}
-                            fullWidth
-                            sx={{ mt: 1 }}
-                          >
-                            Add IRN
-                          </Button>
+                          <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column' }}>
+                            <Button
+                              variant="outlined"
+                              onClick={() => {
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.accept = '.txt,.md,.html,.doc,.docx';
+                                input.onchange = (e) => {
+                                  const file = (e.target as HTMLInputElement).files?.[0];
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => {
+                                      const content = event.target?.result as string;
+                                      const newIRN: FileItem = {
+                                        id: Date.now().toString(),
+                                        name: file.name.replace(/\.[^/.]+$/, ""),
+                                        author: 'Current User',
+                                        tags: ['irn'],
+                                        category: 'irn',
+                                        uploadDate: new Date(),
+                                        size: file.size,
+                                        type: 'text/html',
+                                        content: content,
+                                        file: file
+                                      };
+                                      handleIRNSave(newIRN);
+                                    };
+                                    reader.readAsText(file);
+                                  }
+                                };
+                                input.click();
+                              }}
+                              startIcon={<FolderOpen />}
+                              fullWidth
+                            >
+                              Upload IRN
+                            </Button>
+                            <Button
+                              variant="contained"
+                              onClick={() => setIrnEditorOpen(true)}
+                              startIcon={<NoteAdd />}
+                              fullWidth
+                            >
+                              Add IRN Manually
+                            </Button>
+                          </Box>
                         </CardContent>
                       </Card>
                     </Box>
