@@ -26,6 +26,7 @@ import {
   VideoFile,
   AudioFile,
   InsertDriveFile,
+  NoteAlt,
 } from '@mui/icons-material';
 import { FileItem, FileCategory } from '../types';
 
@@ -35,7 +36,8 @@ interface FileListProps {
   category: FileCategory;
 }
 
-const getFileIcon = (type: string) => {
+const getFileIcon = (type: string, category?: string) => {
+  if (category === 'irn') return <NoteAlt color="primary" />;
   if (type.includes('pdf')) return <PictureAsPdf color="error" />;
   if (type.includes('word') || type.includes('document')) return <Description color="primary" />;
   if (type.includes('sheet') || type.includes('excel')) return <TableChart color="success" />;
@@ -66,6 +68,7 @@ const getCategoryColor = (category: string) => {
     case 'internal': return 'primary';
     case 'external': return 'secondary';
     case 'ai-generated': return 'success';
+    case 'irn': return 'info';
     default: return 'default';
   }
 };
@@ -75,6 +78,7 @@ const getCategoryLabel = (category: string) => {
     case 'internal': return 'Internal';
     case 'external': return 'External';
     case 'ai-generated': return 'AI Generated';
+    case 'irn': return 'IRN';
     default: return category;
   }
 };
@@ -135,17 +139,56 @@ const FileList: React.FC<FileListProps> = ({ files, onFileOpen, category }) => {
                     cursor: 'pointer',
                   } 
                 }}
-                onClick={() => onFileOpen(file)}
+                onClick={() => {
+                  if (file.category === 'irn' && file.content) {
+                    const htmlContent = `
+                      <!DOCTYPE html>
+                      <html>
+                        <head>
+                          <title>${file.name}</title>
+                          <meta charset="utf-8">
+                          <style>
+                            body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+                            h1, h2, h3 { color: #333; margin-top: 24px; margin-bottom: 16px; }
+                            h1 { border-bottom: 2px solid #eee; padding-bottom: 8px; }
+                            table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+                            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                            th { background-color: #f2f2f2; font-weight: bold; }
+                            blockquote { border-left: 4px solid #ccc; margin: 16px 0; padding-left: 16px; color: #666; }
+                            code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
+                            pre { background-color: #f4f4f4; padding: 12px; border-radius: 6px; overflow-x: auto; }
+                            ul, ol { margin: 16px 0; padding-left: 24px; }
+                            li { margin: 4px 0; }
+                            p { margin: 12px 0; }
+                            strong { font-weight: bold; }
+                            em { font-style: italic; }
+                            u { text-decoration: underline; }
+                            s { text-decoration: line-through; }
+                          </style>
+                        </head>
+                        <body>
+                          <h1>${file.name}</h1>
+                          <div>${file.type === 'text/html' ? file.content : file.content.replace(/\n/g, '<br>')}</div>
+                        </body>
+                      </html>
+                    `;
+                    const blob = new Blob([htmlContent], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                  } else {
+                    onFileOpen(file);
+                  }
+                }}
               >
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    {getFileIcon(file.type)}
+                    {getFileIcon(file.type, file.category)}
                     <Box>
                       <Typography variant="body2" fontWeight="medium">
                         {file.name}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {file.type.split('/').pop()?.toUpperCase()}
+                        {file.category === 'irn' ? 'IRN' : file.type.split('/').pop()?.toUpperCase()}
                       </Typography>
                     </Box>
                   </Box>
@@ -245,7 +288,44 @@ const FileList: React.FC<FileListProps> = ({ files, onFileOpen, category }) => {
                       size="small"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onFileOpen(file);
+                        if (file.category === 'irn' && file.content) {
+                          const htmlContent = `
+                            <!DOCTYPE html>
+                            <html>
+                              <head>
+                                <title>${file.name}</title>
+                                <meta charset="utf-8">
+                                <style>
+                                  body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+                                  h1, h2, h3 { color: #333; margin-top: 24px; margin-bottom: 16px; }
+                                  h1 { border-bottom: 2px solid #eee; padding-bottom: 8px; }
+                                  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+                                  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                                  th { background-color: #f2f2f2; font-weight: bold; }
+                                  blockquote { border-left: 4px solid #ccc; margin: 16px 0; padding-left: 16px; color: #666; }
+                                  code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
+                                  pre { background-color: #f4f4f4; padding: 12px; border-radius: 6px; overflow-x: auto; }
+                                  ul, ol { margin: 16px 0; padding-left: 24px; }
+                                  li { margin: 4px 0; }
+                                  p { margin: 12px 0; }
+                                  strong { font-weight: bold; }
+                                  em { font-style: italic; }
+                                  u { text-decoration: underline; }
+                                  s { text-decoration: line-through; }
+                                </style>
+                              </head>
+                              <body>
+                                <h1>${file.name}</h1>
+                                <div>${file.type === 'text/html' ? file.content : file.content.replace(/\n/g, '<br>')}</div>
+                              </body>
+                            </html>
+                          `;
+                          const blob = new Blob([htmlContent], { type: 'text/html' });
+                          const url = URL.createObjectURL(blob);
+                          window.open(url, '_blank');
+                        } else {
+                          onFileOpen(file);
+                        }
                       }}
                       color="primary"
                     >
