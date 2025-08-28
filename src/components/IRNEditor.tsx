@@ -31,6 +31,7 @@ import {
   Cancel,
   AutoAwesome,
   Tune,
+  Image as ImageIcon,
 } from '@mui/icons-material';
 import { 
   RichTextEditor, 
@@ -44,7 +45,6 @@ import {
   MenuButtonBulletedList,
   MenuButtonBlockquote,
   MenuButtonCode,
-  MenuButtonCodeBlock,
   MenuButtonEditLink,
   MenuButtonUndo,
   MenuButtonRedo,
@@ -53,6 +53,7 @@ import {
 } from 'mui-tiptap';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import Image from '@tiptap/extension-image';
 import { FileItem } from '../types';
 
 type IRNMode = 'generate' | 'select';
@@ -258,6 +259,10 @@ const IRNEditor: React.FC<IRNEditorProps> = ({
               ref={rteRef}
               extensions={[
                 StarterKit,
+                Image.configure({
+                  inline: true,
+                  allowBase64: true,
+                }),
                 Placeholder.configure({
                   placeholder: 'Enter your research notes, analysis, or any other content here...',
                 }),
@@ -280,8 +285,30 @@ const IRNEditor: React.FC<IRNEditorProps> = ({
                   <MenuDivider />
                   <MenuButtonBlockquote />
                   <MenuButtonCode />
-                  <MenuButtonCodeBlock />
                   <MenuDivider />
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file && rteRef.current?.editor) {
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            const src = reader.result as string;
+                            rteRef.current?.editor?.chain().focus().setImage({ src }).run();
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      };
+                      input.click();
+                    }}
+                    title="Insert Image"
+                  >
+                    <ImageIcon />
+                  </IconButton>
                   <MenuButtonEditLink />
                   <MenuDivider />
                   <MenuButtonUndo />
