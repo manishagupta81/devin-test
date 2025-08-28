@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Box,
   Card,
@@ -21,6 +21,27 @@ import {
   Save,
   Cancel,
 } from '@mui/icons-material';
+import { 
+  RichTextEditor, 
+  type RichTextEditorRef,
+  MenuButtonBold,
+  MenuButtonItalic,
+  MenuButtonUnderline,
+  MenuButtonStrikethrough,
+  MenuDivider,
+  MenuButtonOrderedList,
+  MenuButtonBulletedList,
+  MenuButtonBlockquote,
+  MenuButtonCode,
+  MenuButtonCodeBlock,
+  MenuButtonEditLink,
+  MenuButtonUndo,
+  MenuButtonRedo,
+  MenuControlsContainer,
+  MenuSelectHeading,
+} from 'mui-tiptap';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
 import { FileItem } from '../types';
 
 interface IRNEditorProps {
@@ -36,6 +57,7 @@ const IRNEditor: React.FC<IRNEditorProps> = ({ open, onClose, onIRNSave }) => {
   const [newTag, setNewTag] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const rteRef = useRef<RichTextEditorRef>(null);
 
   const handleAddTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
@@ -54,7 +76,8 @@ const IRNEditor: React.FC<IRNEditorProps> = ({ open, onClose, onIRNSave }) => {
       return;
     }
 
-    if (!content.trim()) {
+    const textContent = content.replace(/<[^>]*>/g, '').trim();
+    if (!textContent) {
       setError('Please enter some content for your IRN');
       return;
     }
@@ -73,7 +96,7 @@ const IRNEditor: React.FC<IRNEditorProps> = ({ open, onClose, onIRNSave }) => {
         category: 'irn',
         uploadDate: new Date(),
         size: new Blob([content]).size,
-        type: 'text/plain',
+        type: 'text/html',
         content: content.trim(),
       };
 
@@ -93,6 +116,9 @@ const IRNEditor: React.FC<IRNEditorProps> = ({ open, onClose, onIRNSave }) => {
     setNewTag('');
     setError(null);
     setSaving(false);
+    if (rteRef.current) {
+      rteRef.current.editor?.commands.clearContent();
+    }
     onClose();
   };
 
@@ -129,21 +155,56 @@ const IRNEditor: React.FC<IRNEditorProps> = ({ open, onClose, onIRNSave }) => {
             placeholder="Enter a descriptive title for your IRN"
           />
 
-          <TextField
-            label="Content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            multiline
-            rows={12}
-            fullWidth
-            required
-            placeholder="Enter your research notes, analysis, or any other content here..."
-            sx={{
-              '& .MuiInputBase-root': {
-                alignItems: 'flex-start',
-              },
-            }}
-          />
+          <Box>
+            <Typography variant="body2" gutterBottom>
+              Content *
+            </Typography>
+            <RichTextEditor
+              ref={rteRef}
+              extensions={[
+                StarterKit,
+                Placeholder.configure({
+                  placeholder: 'Enter your research notes, analysis, or any other content here...',
+                }),
+              ]}
+              content={content}
+              onUpdate={({ editor }) => {
+                setContent(editor.getHTML());
+              }}
+              renderControls={() => (
+                <MenuControlsContainer>
+                  <MenuButtonBold />
+                  <MenuButtonItalic />
+                  <MenuButtonUnderline />
+                  <MenuButtonStrikethrough />
+                  <MenuDivider />
+                  <MenuSelectHeading />
+                  <MenuDivider />
+                  <MenuButtonBulletedList />
+                  <MenuButtonOrderedList />
+                  <MenuDivider />
+                  <MenuButtonBlockquote />
+                  <MenuButtonCode />
+                  <MenuButtonCodeBlock />
+                  <MenuDivider />
+                  <MenuButtonEditLink />
+                  <MenuDivider />
+                  <MenuButtonUndo />
+                  <MenuButtonRedo />
+                </MenuControlsContainer>
+              )}
+              RichTextFieldProps={{
+                variant: 'outlined',
+              }}
+              sx={{
+                minHeight: 300,
+                '& .ProseMirror': {
+                  minHeight: 250,
+                  padding: 2,
+                },
+              }}
+            />
+          </Box>
 
           <Box>
             <Typography variant="body2" gutterBottom>

@@ -141,7 +141,38 @@ const FileList: React.FC<FileListProps> = ({ files, onFileOpen, category }) => {
                 }}
                 onClick={() => {
                   if (file.category === 'irn' && file.content) {
-                    const blob = new Blob([file.content], { type: 'text/plain' });
+                    const htmlContent = `
+                      <!DOCTYPE html>
+                      <html>
+                        <head>
+                          <title>${file.name}</title>
+                          <meta charset="utf-8">
+                          <style>
+                            body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+                            h1, h2, h3 { color: #333; margin-top: 24px; margin-bottom: 16px; }
+                            h1 { border-bottom: 2px solid #eee; padding-bottom: 8px; }
+                            table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+                            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                            th { background-color: #f2f2f2; font-weight: bold; }
+                            blockquote { border-left: 4px solid #ccc; margin: 16px 0; padding-left: 16px; color: #666; }
+                            code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
+                            pre { background-color: #f4f4f4; padding: 12px; border-radius: 6px; overflow-x: auto; }
+                            ul, ol { margin: 16px 0; padding-left: 24px; }
+                            li { margin: 4px 0; }
+                            p { margin: 12px 0; }
+                            strong { font-weight: bold; }
+                            em { font-style: italic; }
+                            u { text-decoration: underline; }
+                            s { text-decoration: line-through; }
+                          </style>
+                        </head>
+                        <body>
+                          <h1>${file.name}</h1>
+                          <div>${file.type === 'text/html' ? file.content : file.content.replace(/\n/g, '<br>')}</div>
+                        </body>
+                      </html>
+                    `;
+                    const blob = new Blob([htmlContent], { type: 'text/html' });
                     const url = URL.createObjectURL(blob);
                     window.open(url, '_blank');
                   } else {
@@ -258,7 +289,38 @@ const FileList: React.FC<FileListProps> = ({ files, onFileOpen, category }) => {
                       onClick={(e) => {
                         e.stopPropagation();
                         if (file.category === 'irn' && file.content) {
-                          const blob = new Blob([file.content], { type: 'text/plain' });
+                          const htmlContent = `
+                            <!DOCTYPE html>
+                            <html>
+                              <head>
+                                <title>${file.name}</title>
+                                <meta charset="utf-8">
+                                <style>
+                                  body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+                                  h1, h2, h3 { color: #333; margin-top: 24px; margin-bottom: 16px; }
+                                  h1 { border-bottom: 2px solid #eee; padding-bottom: 8px; }
+                                  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+                                  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                                  th { background-color: #f2f2f2; font-weight: bold; }
+                                  blockquote { border-left: 4px solid #ccc; margin: 16px 0; padding-left: 16px; color: #666; }
+                                  code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
+                                  pre { background-color: #f4f4f4; padding: 12px; border-radius: 6px; overflow-x: auto; }
+                                  ul, ol { margin: 16px 0; padding-left: 24px; }
+                                  li { margin: 4px 0; }
+                                  p { margin: 12px 0; }
+                                  strong { font-weight: bold; }
+                                  em { font-style: italic; }
+                                  u { text-decoration: underline; }
+                                  s { text-decoration: line-through; }
+                                </style>
+                              </head>
+                              <body>
+                                <h1>${file.name}</h1>
+                                <div>${file.type === 'text/html' ? file.content : file.content.replace(/\n/g, '<br>')}</div>
+                              </body>
+                            </html>
+                          `;
+                          const blob = new Blob([htmlContent], { type: 'text/html' });
                           const url = URL.createObjectURL(blob);
                           window.open(url, '_blank');
                         } else {
