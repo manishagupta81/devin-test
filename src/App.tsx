@@ -18,6 +18,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Card,
+  CardContent,
+  Button,
 } from '@mui/material';
 import {
   FolderOpen,
@@ -27,10 +30,12 @@ import {
   Science,
   Android as AndroidIcon,
   ExpandLess,
+  NoteAdd,
 } from '@mui/icons-material';
 import { FileItem, FileCategory, TickerSubscription, TeamSubscription } from './types';
 import FileList from './components/FileList';
 import FileUpload from './components/FileUpload';
+import IRNEditor from './components/IRNEditor';
 import SubscriptionsManager from './components/SubscriptionsManager';
 
 const theme = createTheme({
@@ -95,6 +100,7 @@ function App() {
   const [filteredFiles, setFilteredFiles] = useState<FileItem[]>([]);
   const [tickerSubscriptions, setTickerSubscriptions] = useState<TickerSubscription[]>([]);
   const [teamSubscriptions, setTeamSubscriptions] = useState<TeamSubscription[]>([]);
+  const [irnEditorOpen, setIrnEditorOpen] = useState(false);
 
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: <Dashboard /> },
@@ -128,6 +134,10 @@ function App() {
 
   const handleFileUpload = (newFile: FileItem) => {
     setFiles(prev => [...prev, newFile]);
+  };
+
+  const handleIRNSave = (newIRN: FileItem) => {
+    setFiles(prev => [...prev, newIRN]);
   };
 
   const handleFileOpen = (file: FileItem) => {
@@ -424,13 +434,41 @@ function App() {
             <Box>
               {(selectedMenuItem === 'overview' || selectedMenuItem === 'ai-reports' || selectedMenuItem === 'external-files' || selectedMenuItem === 'internal-research') && (
                 <>
-                  <Box sx={{ mb: 3 }}>
-                    <FileUpload onFileUpload={handleFileUpload} />
+                  <Box sx={{ mb: 3, display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+                    <Box sx={{ flex: 1 }}>
+                      <FileUpload onFileUpload={handleFileUpload} />
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Card elevation={2}>
+                        <CardContent>
+                          <Typography variant="h6" gutterBottom>
+                            Create IRN
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            Create an Internal Research Note with rich text content
+                          </Typography>
+                          <Button
+                            variant="contained"
+                            onClick={() => setIrnEditorOpen(true)}
+                            startIcon={<NoteAdd />}
+                            fullWidth
+                            sx={{ mt: 1 }}
+                          >
+                            Add IRN
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </Box>
                   </Box>
                   <FileList 
                     files={filteredFiles} 
                     onFileOpen={handleFileOpen}
                     category={getFileCategory()}
+                  />
+                  <IRNEditor
+                    open={irnEditorOpen}
+                    onClose={() => setIrnEditorOpen(false)}
+                    onIRNSave={handleIRNSave}
                   />
                 </>
               )}

@@ -3,7 +3,7 @@ export interface FileItem {
   name: string;
   author: string;
   tags: string[];
-  category: 'internal' | 'external' | 'ai-generated';
+  category: 'internal' | 'external' | 'ai-generated' | 'irn';
   uploadDate: Date;
   size: number;
   type: string;
@@ -11,6 +11,7 @@ export interface FileItem {
   team?: string;
   url?: string;
   file?: File;
+  content?: string;
 }
 
 export interface User {
@@ -19,7 +20,7 @@ export interface User {
   avatar?: string;
 }
 
-export type FileCategory = 'internal' | 'external' | 'ai-generated' | 'all';
+export type FileCategory = 'internal' | 'external' | 'ai-generated' | 'irn' | 'all';
 
 export interface TickerSubscription {
   ticker: string;

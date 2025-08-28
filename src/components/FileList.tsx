@@ -26,6 +26,7 @@ import {
   VideoFile,
   AudioFile,
   InsertDriveFile,
+  NoteAlt,
 } from '@mui/icons-material';
 import { FileItem, FileCategory } from '../types';
 
@@ -35,7 +36,8 @@ interface FileListProps {
   category: FileCategory;
 }
 
-const getFileIcon = (type: string) => {
+const getFileIcon = (type: string, category?: string) => {
+  if (category === 'irn') return <NoteAlt color="primary" />;
   if (type.includes('pdf')) return <PictureAsPdf color="error" />;
   if (type.includes('word') || type.includes('document')) return <Description color="primary" />;
   if (type.includes('sheet') || type.includes('excel')) return <TableChart color="success" />;
@@ -66,6 +68,7 @@ const getCategoryColor = (category: string) => {
     case 'internal': return 'primary';
     case 'external': return 'secondary';
     case 'ai-generated': return 'success';
+    case 'irn': return 'info';
     default: return 'default';
   }
 };
@@ -75,6 +78,7 @@ const getCategoryLabel = (category: string) => {
     case 'internal': return 'Internal';
     case 'external': return 'External';
     case 'ai-generated': return 'AI Generated';
+    case 'irn': return 'IRN';
     default: return category;
   }
 };
@@ -135,17 +139,25 @@ const FileList: React.FC<FileListProps> = ({ files, onFileOpen, category }) => {
                     cursor: 'pointer',
                   } 
                 }}
-                onClick={() => onFileOpen(file)}
+                onClick={() => {
+                  if (file.category === 'irn' && file.content) {
+                    const blob = new Blob([file.content], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                  } else {
+                    onFileOpen(file);
+                  }
+                }}
               >
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    {getFileIcon(file.type)}
+                    {getFileIcon(file.type, file.category)}
                     <Box>
                       <Typography variant="body2" fontWeight="medium">
                         {file.name}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {file.type.split('/').pop()?.toUpperCase()}
+                        {file.category === 'irn' ? 'IRN' : file.type.split('/').pop()?.toUpperCase()}
                       </Typography>
                     </Box>
                   </Box>
@@ -245,7 +257,13 @@ const FileList: React.FC<FileListProps> = ({ files, onFileOpen, category }) => {
                       size="small"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onFileOpen(file);
+                        if (file.category === 'irn' && file.content) {
+                          const blob = new Blob([file.content], { type: 'text/plain' });
+                          const url = URL.createObjectURL(blob);
+                          window.open(url, '_blank');
+                        } else {
+                          onFileOpen(file);
+                        }
                       }}
                       color="primary"
                     >
