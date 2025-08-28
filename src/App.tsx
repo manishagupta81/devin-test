@@ -209,6 +209,11 @@ function App() {
     return Array.from(new Set(files.map(file => file.team).filter(Boolean))) as string[];
   };
 
+  const getExistingTags = (): string[] => {
+    const allTags = files.flatMap(file => file.tags || []);
+    return Array.from(new Set(allTags)).sort();
+  };
+
   const handleTeamSubscriptionChange = async (team: string, subscribed: boolean): Promise<void> => {
     try {
       const { mockSubscriptionApi } = await import('./services/mockApi');
@@ -469,6 +474,8 @@ function App() {
                     open={irnEditorOpen}
                     onClose={() => setIrnEditorOpen(false)}
                     onIRNSave={handleIRNSave}
+                    availableTickers={getAvailableTickers()}
+                    existingTags={getExistingTags()}
                   />
                 </>
               )}
