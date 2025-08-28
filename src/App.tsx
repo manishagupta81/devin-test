@@ -495,7 +495,7 @@ function App() {
                               startIcon={<NoteAdd />}
                               fullWidth
                             >
-                              Add IRN Manually
+                              Generate IRN
                             </Button>
                           </Box>
                         </CardContent>
