@@ -14,15 +14,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  ToggleButton,
-  ToggleButtonGroup,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Checkbox,
-  ListItemText,
-  OutlinedInput,
 } from '@mui/material';
 import {
   Add,
@@ -30,7 +25,6 @@ import {
   Save,
   Cancel,
   AutoAwesome,
-  Tune,
   Image as ImageIcon,
 } from '@mui/icons-material';
 import { 
@@ -56,8 +50,6 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
 import { FileItem } from '../types';
 
-type IRNMode = 'generate' | 'select';
-
 interface IRNEditorProps {
   open: boolean;
   onClose: () => void;
@@ -73,11 +65,11 @@ const IRNEditor: React.FC<IRNEditorProps> = ({
   availableTickers = [], 
   existingTags = [] 
 }) => {
-  const [mode, setMode] = useState<IRNMode>('select');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [selectedTicker, setSelectedTicker] = useState<string>('');
+  const [primaryTicker, setPrimaryTicker] = useState<string>('');
+  const [secondaryTicker, setSecondaryTicker] = useState<string>('');
   const [newTag, setNewTag] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,20 +86,18 @@ const IRNEditor: React.FC<IRNEditorProps> = ({
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleGenerateContent = () => {
+  const handleGenerateAttributes = () => {
     if (!content.trim()) {
-      setError('Please enter some content first to generate tags and title');
+      setError('Please enter some content first to generate attributes');
       return;
     }
 
     const textContent = content.replace(/<[^>]*>/g, '').trim();
     const words = textContent.toLowerCase().split(/\s+/);
     
-    if (!title.trim()) {
-      const titleWords = textContent.split(/[.!?]/)[0].split(' ').slice(0, 6);
-      const generatedTitle = titleWords.join(' ').replace(/^\w/, c => c.toUpperCase());
-      setTitle(generatedTitle || 'Generated IRN');
-    }
+    const titleWords = textContent.split(/[.!?]/)[0].split(' ').slice(0, 6);
+    const generatedTitle = titleWords.join(' ').replace(/^\w/, c => c.toUpperCase());
+    setTitle(generatedTitle || 'Generated IRN');
 
     const commonWords = new Set(['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those', 'a', 'an']);
     const keywords = words
@@ -122,8 +112,24 @@ const IRNEditor: React.FC<IRNEditorProps> = ({
       .slice(0, 3)
       .map(([word]) => word);
 
-    const generatedTags = Array.from(new Set([...tags, ...topKeywords, 'irn']));
+    const generatedTags = Array.from(new Set([...topKeywords, 'irn']));
     setTags(generatedTags);
+
+    if (availableTickers.length > 0) {
+      const upperContent = textContent.toUpperCase();
+      const mentionedTickers = availableTickers.filter(ticker => 
+        upperContent.includes(ticker.toUpperCase())
+      );
+      
+      if (mentionedTickers.length > 0) {
+        setPrimaryTicker(mentionedTickers[0]);
+        if (mentionedTickers.length > 1) {
+          setSecondaryTicker(mentionedTickers[1]);
+        }
+      } else {
+        setPrimaryTicker(availableTickers[0]);
+      }
+    }
   };
 
   const handleSave = async () => {
@@ -154,7 +160,7 @@ const IRNEditor: React.FC<IRNEditorProps> = ({
         size: new Blob([content]).size,
         type: 'text/html',
         content: content.trim(),
-        ticker: selectedTicker || undefined,
+        ticker: primaryTicker || undefined,
       };
 
       onIRNSave(newIRN);
@@ -167,11 +173,11 @@ const IRNEditor: React.FC<IRNEditorProps> = ({
   };
 
   const handleClose = () => {
-    setMode('select');
     setTitle('');
     setContent('');
     setTags([]);
-    setSelectedTicker('');
+    setPrimaryTicker('');
+    setSecondaryTicker('');
     setNewTag('');
     setError(null);
     setSaving(false);
@@ -205,51 +211,15 @@ const IRNEditor: React.FC<IRNEditorProps> = ({
         )}
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-          {/* Mode Selection */}
-          <Box>
-            <Typography variant="body2" gutterBottom>
-              Content Mode
-            </Typography>
-            <ToggleButtonGroup
-              value={mode}
-              exclusive
-              onChange={(e, newMode) => newMode && setMode(newMode)}
-              size="small"
-              fullWidth
-            >
-              <ToggleButton value="select" aria-label="select mode">
-                <Tune sx={{ mr: 1 }} />
-                Select Tags & Ticker
-              </ToggleButton>
-              <ToggleButton value="generate" aria-label="generate mode">
-                <AutoAwesome sx={{ mr: 1 }} />
-                Generate Tags & Name
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
-
           {/* Title Field */}
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
-            <TextField
-              label="Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              fullWidth
-              required
-              placeholder="Enter a descriptive title for your IRN"
-            />
-            {mode === 'generate' && (
-              <Button
-                variant="outlined"
-                onClick={handleGenerateContent}
-                disabled={!content.trim()}
-                size="small"
-                sx={{ minWidth: 'auto', px: 2 }}
-              >
-                <AutoAwesome />
-              </Button>
-            )}
-          </Box>
+          <TextField
+            label="Name of the File"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            fullWidth
+            required
+            placeholder="Enter a descriptive title for your IRN"
+          />
 
           <Box>
             <Typography variant="body2" gutterBottom>
@@ -328,14 +298,35 @@ const IRNEditor: React.FC<IRNEditorProps> = ({
             />
           </Box>
 
-          {/* Ticker Selection */}
-          {mode === 'select' && availableTickers.length > 0 && (
+          {/* Primary Ticker */}
+          {availableTickers.length > 0 && (
             <FormControl fullWidth>
-              <InputLabel>Ticker (Optional)</InputLabel>
+              <InputLabel>Primary Ticker</InputLabel>
               <Select
-                value={selectedTicker}
-                onChange={(e) => setSelectedTicker(e.target.value)}
-                label="Ticker (Optional)"
+                value={primaryTicker}
+                onChange={(e) => setPrimaryTicker(e.target.value)}
+                label="Primary Ticker"
+              >
+                <MenuItem value="">
+                  <em>None</em>
+                </MenuItem>
+                {availableTickers.map((ticker) => (
+                  <MenuItem key={ticker} value={ticker}>
+                    {ticker}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+
+          {/* Secondary Ticker */}
+          {availableTickers.length > 0 && (
+            <FormControl fullWidth>
+              <InputLabel>Secondary Ticker</InputLabel>
+              <Select
+                value={secondaryTicker}
+                onChange={(e) => setSecondaryTicker(e.target.value)}
+                label="Secondary Ticker"
               >
                 <MenuItem value="">
                   <em>None</em>
@@ -366,80 +357,38 @@ const IRNEditor: React.FC<IRNEditorProps> = ({
               ))}
             </Box>
             
-            {mode === 'select' ? (
-              <>
-                {/* Tag Selection from Existing Tags */}
-                {existingTags.length > 0 && (
-                  <FormControl fullWidth sx={{ mb: 1 }}>
-                    <InputLabel>Select from existing tags</InputLabel>
-                    <Select
-                      multiple
-                      value={tags.filter(tag => existingTags.includes(tag))}
-                      onChange={(e) => {
-                        const selectedExistingTags = e.target.value as string[];
-                        const customTags = tags.filter(tag => !existingTags.includes(tag));
-                        setTags([...selectedExistingTags, ...customTags]);
-                      }}
-                      input={<OutlinedInput label="Select from existing tags" />}
-                      renderValue={(selected) => (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {(selected as string[]).map((value) => (
-                            <Chip key={value} label={value} size="small" />
-                          ))}
-                        </Box>
-                      )}
-                    >
-                      {existingTags.map((tag) => (
-                        <MenuItem key={tag} value={tag}>
-                          <Checkbox checked={tags.includes(tag)} />
-                          <ListItemText primary={tag} />
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                )}
-                
-                {/* Manual Tag Entry */}
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <TextField
-                    size="small"
-                    placeholder="Add a custom tag"
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddTag();
-                      }
-                    }}
-                    sx={{ flexGrow: 1 }}
-                  />
-                  <IconButton onClick={handleAddTag} disabled={!newTag.trim()}>
-                    <Add />
-                  </IconButton>
-                </Box>
-              </>
-            ) : (
-              /* Generate Mode - Show generated tags with option to add more */
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextField
-                  size="small"
-                  placeholder="Add additional tags"
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddTag();
-                    }
-                  }}
-                  sx={{ flexGrow: 1 }}
-                />
-                <IconButton onClick={handleAddTag} disabled={!newTag.trim()}>
-                  <Add />
-                </IconButton>
-              </Box>
-            )}
+            {/* Manual Tag Entry */}
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
+                size="small"
+                placeholder="Add a custom tag"
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
+                sx={{ flexGrow: 1 }}
+              />
+              <IconButton onClick={handleAddTag} disabled={!newTag.trim()}>
+                <Add />
+              </IconButton>
+            </Box>
+          </Box>
+
+          {/* Generate Attributes Button */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={handleGenerateAttributes}
+              disabled={!content.trim()}
+              startIcon={<AutoAwesome />}
+              size="large"
+            >
+              Generate Attributes with AI
+            </Button>
           </Box>
 
           {saving && (
