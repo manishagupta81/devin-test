@@ -31,6 +31,7 @@ import {
   Android as AndroidIcon,
   ExpandLess,
   NoteAdd,
+  Chat,
 } from '@mui/icons-material';
 import { FileItem, FileCategory, TickerSubscription, TeamSubscription } from './types';
 import FileList from './components/FileList';
@@ -108,6 +109,7 @@ function App() {
     { id: 'external-files', label: 'External Files', icon: <FolderOpen /> },
     { id: 'internal-research', label: 'Internal Research', icon: <Science /> },
     { id: 'agents', label: 'Agents', icon: <AndroidIcon /> },
+    { id: 'advisor-playground', label: 'Advisor Virtual Assistant Playground', icon: <Chat /> },
     { id: 'settings', label: 'Settings', icon: <Settings /> },
   ];
 
@@ -488,6 +490,45 @@ function App() {
                   <Typography variant="body1" color="text.secondary">
                     Agent management functionality would be implemented here.
                   </Typography>
+                </Box>
+              )}
+              
+              {selectedMenuItem === 'advisor-playground' && (
+                <Box sx={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: 'calc(100vh - 200px)',
+                  textAlign: 'center',
+                  position: 'relative'
+                }}>
+                  <Typography variant="h2" sx={{ 
+                    color: 'text.primary', 
+                    fontWeight: 'normal',
+                    fontSize: { xs: '2rem', sm: '3rem', md: '4rem' }
+                  }}>
+                    Advisor Virtual Assistant Playground
+                  </Typography>
+                  
+                  <Box sx={{
+                    position: 'fixed',
+                    bottom: 24,
+                    right: 24,
+                    backgroundColor: 'primary.main',
+                    borderRadius: '50%',
+                    width: 56,
+                    height: 56,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: 3,
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: 'primary.dark',
+                    }
+                  }}>
+                    <Chat sx={{ color: 'white', fontSize: 28 }} />
+                  </Box>
                 </Box>
               )}
               
