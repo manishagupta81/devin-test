@@ -19,8 +19,17 @@ import {
   Close,
   Send,
   SmartToy,
+  Description,
+  OpenInNew,
 } from '@mui/icons-material';
 import { FileItem } from '../types';
+
+interface Citation {
+  fileName: string;
+  page: number;
+  snippet: string;
+  fileId: string;
+}
 
 interface Message {
   id: string;
@@ -29,6 +38,7 @@ interface Message {
   timestamp: Date;
   intent?: string;
   dataSource?: 'files' | 'database' | 'internet' | 'mixed';
+  citations?: Citation[];
 }
 
 interface GlobalChatProps {
@@ -147,7 +157,76 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
     return { intent: 'general', dataSource: 'files' };
   };
 
-  const generateResponse = (userMessage: string, intent: string, dataSource: string): string => {
+  const generateCitations = (intent: string, userMessage: string): Citation[] => {
+    const citations: Citation[] = [];
+    const lowerMessage = userMessage.toLowerCase();
+    
+    const relevantFiles = files.filter(file => {
+      const lowerName = file.name.toLowerCase();
+      const lowerAuthor = file.author.toLowerCase();
+      
+      if (file.ticker && lowerMessage.includes(file.ticker.toLowerCase())) {
+        return true;
+      }
+      
+      if (lowerMessage.includes(lowerAuthor)) {
+        return true;
+      }
+      
+      if (intent === 'analyst-opinion' && file.category === 'internal') {
+        return true;
+      }
+      if (intent === 'management-meetings' && (lowerName.includes('meeting') || lowerName.includes('irn'))) {
+        return true;
+      }
+      if (intent === 'research-reports' && (file.category === 'internal' || file.category === 'external')) {
+        return true;
+      }
+      if (intent === 'price-targets' && (lowerName.includes('price') || lowerName.includes('target') || lowerName.includes('valuation'))) {
+        return true;
+      }
+      
+      return false;
+    });
+    
+    const selectedFiles = relevantFiles.slice(0, Math.min(4, relevantFiles.length));
+    
+    selectedFiles.forEach((file, index) => {
+      const pageNumber = Math.floor(Math.random() * 20) + 1;
+      
+      let snippet = '';
+      switch (intent) {
+        case 'analyst-opinion':
+          snippet = `"We maintain a positive outlook on ${file.ticker || 'the company'} based on strong fundamentals and market positioning..."`;
+          break;
+        case 'management-meetings':
+          snippet = `"Management emphasized their focus on operational efficiency and margin expansion in the coming quarters..."`;
+          break;
+        case 'price-targets':
+          snippet = `"We are raising our price target to $${Math.floor(Math.random() * 200 + 100)} based on improved earnings visibility..."`;
+          break;
+        case 'financial-metrics':
+          snippet = `"Revenue growth is expected to accelerate to ${Math.floor(Math.random() * 20 + 10)}% YoY with EBITDA margins expanding..."`;
+          break;
+        case 'research-reports':
+          snippet = `"Our sector analysis indicates strong tailwinds from digital transformation and increasing demand..."`;
+          break;
+        default:
+          snippet = `"Key insights from our analysis suggest continued momentum in the sector..."`;
+      }
+      
+      citations.push({
+        fileName: file.name,
+        page: pageNumber,
+        snippet: snippet,
+        fileId: file.id,
+      });
+    });
+    
+    return citations;
+  };
+
+  const generateResponse = (userMessage: string, intent: string, dataSource: string, citations: Citation[]): string => {
     const fileCount = files.length;
     const internalDocs = files.filter(f => f.category === 'internal').length;
     const externalDocs = files.filter(f => f.category === 'external').length;
@@ -157,36 +236,40 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
                           dataSource === 'database' ? '💾 Querying database' :
                           dataSource === 'mixed' ? '📁💾 Searching files & database' : '🌐 Searching';
     
+    const citationText = citations.length > 0 
+      ? `\n\nBased on: ${citations.map((c, i) => `[${c.fileName}, p.${c.page}]`).join(', ')}`
+      : '';
+    
     switch (intent) {
       case 'analyst-opinion':
-        return `${dataSourceText}\n\nSearching through ${internalDocs} internal research notes and ${externalDocs} external reports to find analyst opinions. I can surface specific analyst views, compare perspectives across team members, and identify consensus or divergent opinions on companies and sectors.`;
+        return `${dataSourceText}\n\nSearching through ${internalDocs} internal research notes and ${externalDocs} external reports to find analyst opinions. I can surface specific analyst views, compare perspectives across team members, and identify consensus or divergent opinions on companies and sectors.${citationText}`;
       
       case 'management-meetings':
-        return `${dataSourceText}\n\nAnalyzing ${fileCount} documents for management meeting notes, executive interactions, and key takeaways. I can help you track meeting history, identify evolving themes, and surface important management commentary on strategy, outlook, and market conditions.`;
+        return `${dataSourceText}\n\nAnalyzing ${fileCount} documents for management meeting notes, executive interactions, and key takeaways. I can help you track meeting history, identify evolving themes, and surface important management commentary on strategy, outlook, and market conditions.${citationText}`;
       
       case 'price-targets':
-        return `${dataSourceText}\n\nSearching ${fileCount} research documents and historical database records for price target information. I can track price target changes over time, compare analyst targets, and identify catalysts for target adjustments.`;
+        return `${dataSourceText}\n\nSearching ${fileCount} research documents and historical database records for price target information. I can track price target changes over time, compare analyst targets, and identify catalysts for target adjustments.${citationText}`;
       
       case 'financial-metrics':
-        return `${dataSourceText}\n\nQuerying financial data across ${fileCount} documents and database records. I can help you analyze growth rates, margins, profitability metrics, and compare companies based on specific financial criteria.`;
+        return `${dataSourceText}\n\nQuerying financial data across ${fileCount} documents and database records. I can help you analyze growth rates, margins, profitability metrics, and compare companies based on specific financial criteria.${citationText}`;
       
       case 'investment-decisions':
-        return `${dataSourceText}\n\nAnalyzing investment decision history and thesis documents. I can help you understand why certain investments were made or passed on, track valuation concerns, and review subsequent performance of companies we evaluated.`;
+        return `${dataSourceText}\n\nAnalyzing investment decision history and thesis documents. I can help you understand why certain investments were made or passed on, track valuation concerns, and review subsequent performance of companies we evaluated.${citationText}`;
       
       case 'research-reports':
-        return `${dataSourceText}\n\nSearching through ${fileCount} research reports (${internalDocs} internal, ${externalDocs} external, ${aiDocs} AI-generated). I can surface the latest sector research, thematic reports, and company-specific analysis.`;
+        return `${dataSourceText}\n\nSearching through ${fileCount} research reports (${internalDocs} internal, ${externalDocs} external, ${aiDocs} AI-generated). I can surface the latest sector research, thematic reports, and company-specific analysis.${citationText}`;
       
       case 'earnings-thesis':
-        return `${dataSourceText}\n\nAnalyzing earnings reports and investment thesis documents. I can help you understand how recent earnings have impacted our views, identify thesis changes, and track evolving outlooks on companies.`;
+        return `${dataSourceText}\n\nAnalyzing earnings reports and investment thesis documents. I can help you understand how recent earnings have impacted our views, identify thesis changes, and track evolving outlooks on companies.${citationText}`;
       
       case 'thematic-analysis':
-        return `${dataSourceText}\n\nPerforming thematic analysis across ${fileCount} documents. I can synthesize key themes, identify patterns across management meetings and research notes, and provide comprehensive summaries on specific topics.`;
+        return `${dataSourceText}\n\nPerforming thematic analysis across ${fileCount} documents. I can synthesize key themes, identify patterns across management meetings and research notes, and provide comprehensive summaries on specific topics.${citationText}`;
       
       case 'company-sector':
-        return `${dataSourceText}\n\nSearching ${fileCount} documents covering company and sector analysis. I can provide insights on fundamentals, competitive positioning, industry trends, and investment opportunities.`;
+        return `${dataSourceText}\n\nSearching ${fileCount} documents covering company and sector analysis. I can provide insights on fundamentals, competitive positioning, industry trends, and investment opportunities.${citationText}`;
       
       case 'historical-analysis':
-        return `${dataSourceText}\n\nAnalyzing historical data and trends across documents and database records. I can track how metrics, views, and themes have evolved over time and identify important inflection points.`;
+        return `${dataSourceText}\n\nAnalyzing historical data and trends across documents and database records. I can track how metrics, views, and themes have evolved over time and identify important inflection points.${citationText}`;
       
       default:
         return `${dataSourceText}\n\nWelcome to PRISM Research Intelligence. I have ${fileCount} documents available (${internalDocs} internal research, ${externalDocs} external sources, ${aiDocs} AI analysis). I can help you with:\n\n• Analyst opinions & views\n• Management meeting insights\n• Price targets & financial metrics\n• Investment decisions & thesis\n• Research reports & thematic analysis\n\nWhat would you like to research today?`;
@@ -207,6 +290,7 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
     if (!inputValue.trim()) return;
 
     const { intent, dataSource } = detectIntent(inputValue);
+    const citations = generateCitations(intent, inputValue);
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -218,18 +302,19 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
     };
 
     setMessages(prev => [...prev, userMessage]);
-    logAnalytics('message_sent', { text: inputValue, intent, dataSource });
+    logAnalytics('message_sent', { text: inputValue, intent, dataSource, citationCount: citations.length });
 
     setInputValue('');
 
     setTimeout(() => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: generateResponse(inputValue, intent, dataSource),
+        text: generateResponse(inputValue, intent, dataSource, citations),
         sender: 'assistant',
         timestamp: new Date(),
         intent,
         dataSource,
+        citations,
       };
       setMessages(prev => [...prev, assistantMessage]);
     }, 500);
@@ -245,6 +330,11 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleCitationClick = (citation: Citation) => {
+    logAnalytics('citation_clicked', { fileName: citation.fileName, page: citation.page });
+    console.log(`Opening file: ${citation.fileName} at page ${citation.page}`);
   };
 
   return (
@@ -465,6 +555,63 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
                         minute: '2-digit',
                       })}
                     </Typography>
+
+                    {message.citations && message.citations.length > 0 && (
+                      <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', display: 'block', mb: 1 }}>
+                          📚 Sources ({message.citations.length})
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          {message.citations.map((citation, idx) => (
+                            <Paper
+                              key={idx}
+                              elevation={0}
+                              sx={{
+                                p: 1.5,
+                                bgcolor: 'action.hover',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 1.5,
+                                '&:hover': {
+                                  bgcolor: 'action.selected',
+                                  borderColor: 'primary.main',
+                                  transform: 'translateX(4px)',
+                                },
+                              }}
+                              onClick={() => handleCitationClick(citation)}
+                            >
+                              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                                <Description sx={{ fontSize: 18, color: 'primary.main', mt: 0.2 }} />
+                                <Box sx={{ flex: 1 }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                                      {citation.fileName}
+                                    </Typography>
+                                    <Chip
+                                      label={`p.${citation.page}`}
+                                      size="small"
+                                      sx={{
+                                        height: 18,
+                                        fontSize: '0.65rem',
+                                        bgcolor: 'primary.main',
+                                        color: 'white',
+                                        fontWeight: 600,
+                                      }}
+                                    />
+                                    <OpenInNew sx={{ fontSize: 14, color: 'text.secondary', ml: 'auto' }} />
+                                  </Box>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem', fontStyle: 'italic', display: 'block', lineHeight: 1.4 }}>
+                                    {citation.snippet}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Paper>
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
                   </Paper>
                 </Box>
               ))}
