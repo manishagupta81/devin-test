@@ -28,6 +28,7 @@ interface Message {
   sender: 'user' | 'assistant';
   timestamp: Date;
   intent?: string;
+  dataSource?: 'files' | 'database' | 'internet' | 'mixed';
 }
 
 interface GlobalChatProps {
@@ -96,49 +97,99 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
     console.log('[Analytics]', analyticsEvent);
   };
 
-  const detectIntent = (text: string): string => {
+  const detectIntent = (text: string): { intent: string; dataSource: 'files' | 'database' | 'internet' | 'mixed' } => {
     const lowerText = text.toLowerCase();
     
-    if (lowerText.match(/\b(analyst|expert|researcher|author|recommendation|rating|upgrade|downgrade)\b/)) {
-      return 'analyst';
+    if (lowerText.match(/\b(view|opinion|favor|think|believe|perspective)\b.*\b(on|about)\b/i) ||
+        lowerText.match(/\b(analyst|expert|researcher|author).*\b(view|opinion|favor|think)\b/i)) {
+      return { intent: 'analyst-opinion', dataSource: 'files' };
     }
     
-    if (lowerText.match(/\b(outlook|forecast|prediction|consensus|guidance|estimate|target|projection)\b/)) {
-      return 'team-outlook';
+    if (lowerText.match(/\b(management meeting|met|meeting with|ceo|cfo|management team|executive)\b/i) ||
+        lowerText.match(/\b(management.*saying|management.*focus|key takeaway|meetings.*taken place|meetings.*have)\b/i)) {
+      return { intent: 'management-meetings', dataSource: 'files' };
     }
     
-    if (lowerText.match(/\b(q[1-4]|quarter|year|month|week|recent|latest|2024|2025|compare|trend|historical|performance)\b/)) {
-      return 'timeframe';
+    if (lowerText.match(/\b(price target|target price|pt changed|price objective)\b/i)) {
+      return { intent: 'price-targets', dataSource: 'mixed' };
     }
     
-    if (lowerText.match(/\b(company|stock|ticker|corporation|firm|equity|sector|industry|revenue|earnings|valuation|margin|growth)\b/)) {
-      return 'company';
+    if (lowerText.match(/\b(growth rate|profit margin|revenue|earnings|ebitda|operating margin|roe|roic)\b/i) ||
+        lowerText.match(/\b(margin over|companies.*operating with)\b/i)) {
+      return { intent: 'financial-metrics', dataSource: 'mixed' };
     }
     
-    return 'general';
+    if (lowerText.match(/\b(passed on|valuation concern|investment decision|buy|sell|hold decision)\b/i) ||
+        lowerText.match(/\b(thesis.*change|change.*thesis)\b/i)) {
+      return { intent: 'investment-decisions', dataSource: 'mixed' };
+    }
+    
+    if (lowerText.match(/\b(latest research|recent research|research on|research report|sector report)\b/i)) {
+      return { intent: 'research-reports', dataSource: 'files' };
+    }
+    
+    if (lowerText.match(/\b(earnings|quarterly result|q[1-4] result).*\b(thesis|view|outlook)\b/i)) {
+      return { intent: 'earnings-thesis', dataSource: 'files' };
+    }
+    
+    if (lowerText.match(/\b(summarize|highlight|key takeaway|theme|trend across)\b/i)) {
+      return { intent: 'thematic-analysis', dataSource: 'files' };
+    }
+    
+    if (lowerText.match(/\b(company|stock|ticker|corporation|firm|equity|sector|industry)\b/i)) {
+      return { intent: 'company-sector', dataSource: 'mixed' };
+    }
+    
+    if (lowerText.match(/\b(over past|last|historical|trend|evolution|over time)\b/i)) {
+      return { intent: 'historical-analysis', dataSource: 'mixed' };
+    }
+    
+    return { intent: 'general', dataSource: 'files' };
   };
 
-  const generateResponse = (userMessage: string, intent: string): string => {
+  const generateResponse = (userMessage: string, intent: string, dataSource: string): string => {
     const fileCount = files.length;
     const internalDocs = files.filter(f => f.category === 'internal').length;
     const externalDocs = files.filter(f => f.category === 'external').length;
     const aiDocs = files.filter(f => f.category === 'ai-generated').length;
     
+    const dataSourceText = dataSource === 'files' ? '📁 Searching files' : 
+                          dataSource === 'database' ? '💾 Querying database' :
+                          dataSource === 'mixed' ? '📁💾 Searching files & database' : '🌐 Searching';
+    
     switch (intent) {
-      case 'team-outlook':
-        return `I'm analyzing ${fileCount} research documents (${internalDocs} internal, ${externalDocs} external, ${aiDocs} AI-generated) to provide market outlook insights. I can help you understand consensus views, divergent opinions, and emerging trends across different teams and time periods. What specific market or sector would you like to explore?`;
+      case 'analyst-opinion':
+        return `${dataSourceText}\n\nSearching through ${internalDocs} internal research notes and ${externalDocs} external reports to find analyst opinions. I can surface specific analyst views, compare perspectives across team members, and identify consensus or divergent opinions on companies and sectors.`;
       
-      case 'company':
-        return `I have access to ${fileCount} investment research documents covering company analysis, earnings reports, and sector insights. I can help you find fundamental analysis, valuation metrics, competitive positioning, and growth drivers. Which company or sector are you researching?`;
+      case 'management-meetings':
+        return `${dataSourceText}\n\nAnalyzing ${fileCount} documents for management meeting notes, executive interactions, and key takeaways. I can help you track meeting history, identify evolving themes, and surface important management commentary on strategy, outlook, and market conditions.`;
       
-      case 'analyst':
-        return `Searching through ${fileCount} documents from various analysts and research teams. I can help you track specific analyst views, compare recommendations, identify sentiment shifts, and surface key insights from expert commentary. Which analyst or research theme interests you?`;
+      case 'price-targets':
+        return `${dataSourceText}\n\nSearching ${fileCount} research documents and historical database records for price target information. I can track price target changes over time, compare analyst targets, and identify catalysts for target adjustments.`;
       
-      case 'timeframe':
-        return `I can analyze ${fileCount} documents across different time periods to identify trends, track performance metrics, and compare historical data. This includes quarterly earnings, annual reports, and event-driven analysis. What time period or comparative analysis would you like to see?`;
+      case 'financial-metrics':
+        return `${dataSourceText}\n\nQuerying financial data across ${fileCount} documents and database records. I can help you analyze growth rates, margins, profitability metrics, and compare companies based on specific financial criteria.`;
+      
+      case 'investment-decisions':
+        return `${dataSourceText}\n\nAnalyzing investment decision history and thesis documents. I can help you understand why certain investments were made or passed on, track valuation concerns, and review subsequent performance of companies we evaluated.`;
+      
+      case 'research-reports':
+        return `${dataSourceText}\n\nSearching through ${fileCount} research reports (${internalDocs} internal, ${externalDocs} external, ${aiDocs} AI-generated). I can surface the latest sector research, thematic reports, and company-specific analysis.`;
+      
+      case 'earnings-thesis':
+        return `${dataSourceText}\n\nAnalyzing earnings reports and investment thesis documents. I can help you understand how recent earnings have impacted our views, identify thesis changes, and track evolving outlooks on companies.`;
+      
+      case 'thematic-analysis':
+        return `${dataSourceText}\n\nPerforming thematic analysis across ${fileCount} documents. I can synthesize key themes, identify patterns across management meetings and research notes, and provide comprehensive summaries on specific topics.`;
+      
+      case 'company-sector':
+        return `${dataSourceText}\n\nSearching ${fileCount} documents covering company and sector analysis. I can provide insights on fundamentals, competitive positioning, industry trends, and investment opportunities.`;
+      
+      case 'historical-analysis':
+        return `${dataSourceText}\n\nAnalyzing historical data and trends across documents and database records. I can track how metrics, views, and themes have evolved over time and identify important inflection points.`;
       
       default:
-        return `Welcome to PRISM Research Intelligence. I have ${fileCount} documents available (${internalDocs} internal research, ${externalDocs} external sources, ${aiDocs} AI analysis). I can help you with:\n\n• Company & sector analysis\n• Analyst insights & recommendations\n• Market outlook & forecasts\n• Time-based trends & comparisons\n\nWhat would you like to research today?`;
+        return `${dataSourceText}\n\nWelcome to PRISM Research Intelligence. I have ${fileCount} documents available (${internalDocs} internal research, ${externalDocs} external sources, ${aiDocs} AI analysis). I can help you with:\n\n• Analyst opinions & views\n• Management meeting insights\n• Price targets & financial metrics\n• Investment decisions & thesis\n• Research reports & thematic analysis\n\nWhat would you like to research today?`;
     }
   };
 
@@ -155,28 +206,30 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
 
+    const { intent, dataSource } = detectIntent(inputValue);
+
     const userMessage: Message = {
       id: Date.now().toString(),
       text: inputValue,
       sender: 'user',
       timestamp: new Date(),
+      intent,
+      dataSource,
     };
 
-    const intent = detectIntent(inputValue);
-    userMessage.intent = intent;
-
     setMessages(prev => [...prev, userMessage]);
-    logAnalytics('message_sent', { text: inputValue, intent });
+    logAnalytics('message_sent', { text: inputValue, intent, dataSource });
 
     setInputValue('');
 
     setTimeout(() => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: generateResponse(inputValue, intent),
+        text: generateResponse(inputValue, intent, dataSource),
         sender: 'assistant',
         timestamp: new Date(),
         intent,
+        dataSource,
       };
       setMessages(prev => [...prev, assistantMessage]);
     }, 500);
@@ -367,21 +420,37 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
                     >
                       {message.text}
                     </Typography>
-                    {message.intent && (
-                      <Chip
-                        label={message.intent.replace('-', ' ')}
-                        size="small"
-                        sx={{
-                          mt: 1.5,
-                          height: 22,
-                          fontSize: '0.7rem',
-                          textTransform: 'capitalize',
-                          bgcolor: message.sender === 'user' ? 'primary.dark' : 'primary.light',
-                          color: message.sender === 'user' ? 'white' : 'primary.dark',
-                          fontWeight: 500,
-                        }}
-                      />
-                    )}
+                    <Box sx={{ display: 'flex', gap: 0.5, mt: 1.5, flexWrap: 'wrap' }}>
+                      {message.intent && (
+                        <Chip
+                          label={message.intent.replace(/-/g, ' ')}
+                          size="small"
+                          sx={{
+                            height: 22,
+                            fontSize: '0.7rem',
+                            textTransform: 'capitalize',
+                            bgcolor: message.sender === 'user' ? 'primary.dark' : 'primary.light',
+                            color: message.sender === 'user' ? 'white' : 'primary.dark',
+                            fontWeight: 500,
+                          }}
+                        />
+                      )}
+                      {message.dataSource && (
+                        <Chip
+                          label={message.dataSource === 'files' ? '📁 Files' : 
+                                 message.dataSource === 'database' ? '💾 Database' :
+                                 message.dataSource === 'mixed' ? '📁💾 Mixed' : '🌐 Web'}
+                          size="small"
+                          sx={{
+                            height: 22,
+                            fontSize: '0.7rem',
+                            bgcolor: message.sender === 'user' ? 'rgba(255,255,255,0.2)' : 'grey.200',
+                            color: message.sender === 'user' ? 'white' : 'text.secondary',
+                            fontWeight: 500,
+                          }}
+                        />
+                      )}
+                    </Box>
                     <Typography
                       variant="caption"
                       sx={{
