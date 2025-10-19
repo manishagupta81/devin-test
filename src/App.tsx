@@ -37,6 +37,7 @@ import FileList from './components/FileList';
 import FileUpload from './components/FileUpload';
 import IRNEditor from './components/IRNEditor';
 import SubscriptionsManager from './components/SubscriptionsManager';
+import GlobalChat from './components/GlobalChat';
 
 const theme = createTheme({
   palette: {
@@ -504,6 +505,8 @@ function App() {
             </Box>
           )}
         </Box>
+
+        <GlobalChat files={files} />
       </Box>
     </ThemeProvider>
   );
