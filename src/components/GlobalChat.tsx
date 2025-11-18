@@ -71,46 +71,57 @@ const availableTickers = [
   { symbol: 'IBM', name: 'IBM Corporation' },
 ];
 
-const getConversationStarters = (ticker: string): ConversationStarter[] => [
+const availableSectors = [
+  'Technology',
+  'Healthcare',
+  'Financials',
+  'Consumer Discretionary',
+  'Industrials',
+  'Energy',
+  'Materials',
+  'Real Estate',
+];
+
+const getConversationStarters = (ticker: string, sector: string): ConversationStarter[] => [
   {
-    category: 'Analyst Views',
-    description: 'Get analyst opinions and sentiment',
+    category: 'Analyst Views on Ticker',
+    description: 'Get analyst opinions and sentiment for specific ticker',
     text: `What are our analysts' views on ${ticker}?`,
     intent: 'analyst-opinion',
     icon: '👥',
-    tags: ['Analyst', 'Views'],
+    tags: ['Analyst', 'Views', 'Ticker'],
   },
   {
-    category: 'Price Targets',
-    description: 'Track price target changes',
-    text: `How has the price target for ${ticker} changed over time?`,
-    intent: 'price-targets',
-    icon: '📈',
-    tags: ['Price Target', 'Timeline'],
-  },
-  {
-    category: 'Management Meetings',
-    description: 'View meeting notes and summaries',
-    text: `Show recent management meetings for ${ticker}`,
-    intent: 'management-meetings',
-    icon: '🤝',
-    tags: ['Meetings', 'Executives'],
-  },
-  {
-    category: 'Financial Performance',
-    description: 'Analyze financial metrics and performance',
-    text: `Summarize ${ticker}'s financial performance and key metrics`,
-    intent: 'financial-metrics',
-    icon: '💰',
-    tags: ['Performance', 'Metrics'],
-  },
-  {
-    category: 'Research Reports',
-    description: 'Access latest research and analysis',
-    text: `What does our latest research say about ${ticker}?`,
+    category: 'Latest Research Summary',
+    description: 'Summarize last 2 years of research with evolution and sentiment',
+    text: `What does our latest research say about ${ticker}? Include participants, key takeaways, and how commentary evolved over the past 2 years.`,
     intent: 'research-reports',
     icon: '📊',
-    tags: ['Research', 'Analysis'],
+    tags: ['Research', 'Timeline', 'Evolution'],
+  },
+  {
+    category: 'Price Target History',
+    description: 'Track price target changes over past 2 years',
+    text: `What has been the price target for ${ticker} over the past two years?`,
+    intent: 'price-targets',
+    icon: '📈',
+    tags: ['Price Target', 'History'],
+  },
+  {
+    category: 'Sector Management Notes',
+    description: 'Summarize all management notes for sector over past 2 years',
+    text: `Give me all management notes for ${sector} and summarize. Identify key themes around the industrial cycle and how commentary changed over time.`,
+    intent: 'management-meetings',
+    icon: '🤝',
+    tags: ['Sector', 'Management', 'Themes'],
+  },
+  {
+    category: 'Sector Analyst Sentiment',
+    description: 'Overall analyst sentiment for sector with 4-5 recent tickers',
+    text: `What are our analysts' views on ${sector} sector? Summarize overall sentiment including 4-5 recent tickers in that sector.`,
+    intent: 'analyst-opinion',
+    icon: '🌐',
+    tags: ['Sector', 'Sentiment', 'Overview'],
   },
 ];
 
@@ -119,6 +130,7 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [selectedTicker, setSelectedTicker] = useState('NVDA');
+  const [selectedSector, setSelectedSector] = useState('Technology');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -141,13 +153,13 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
   const detectIntent = (text: string): { intent: string; dataSource: 'files' | 'database' | 'internet' | 'mixed' } => {
     const lowerText = text.toLowerCase();
     
-    if (lowerText.match(/\b(views?|opinions?|favors?|thinks?|believes?|perspectives?)\b.*\b(on|about)\b/i) ||
-        lowerText.match(/\b(analysts?|experts?|researchers?|authors?).*\b(views?|opinions?|favors?|thinks?)\b/i)) {
+    if (lowerText.match(/\b(views?|opinions?|favors?|thinks?|believes?|perspectives?|sentiment)\b.*\b(on|about|for)\b/i) ||
+        lowerText.match(/\b(analysts?|experts?|researchers?|authors?).*\b(views?|opinions?|favors?|thinks?|sentiment)\b/i)) {
       return { intent: 'analyst-opinion', dataSource: 'files' };
     }
     
-    if (lowerText.match(/\b(management meeting|met|meeting with|ceo|cfo|management team|executive)\b/i) ||
-        lowerText.match(/\b(management.*saying|management.*focus|key takeaway|meetings.*taken place|meetings.*have)\b/i)) {
+    if (lowerText.match(/\b(management meeting|met|meeting with|ceo|cfo|management team|executive|mgmt notes?)\b/i) ||
+        lowerText.match(/\b(management.*saying|management.*focus|key takeaway|meetings.*taken place|meetings.*have|give me all)\b/i)) {
       return { intent: 'management-meetings', dataSource: 'files' };
     }
     
@@ -155,7 +167,7 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
       return { intent: 'price-targets', dataSource: 'mixed' };
     }
     
-    if (lowerText.match(/\b(growth rate|profit margin|revenue|earnings|ebitda|operating margin|roe|roic)\b/i) ||
+    if (lowerText.match(/\b(growth rate|profit margin|revenue|earnings|ebitda|operating margin|roe|roic|financial performance)\b/i) ||
         lowerText.match(/\b(margin over|companies.*operating with)\b/i)) {
       return { intent: 'financial-metrics', dataSource: 'mixed' };
     }
@@ -165,7 +177,7 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
       return { intent: 'investment-decisions', dataSource: 'mixed' };
     }
     
-    if (lowerText.match(/\b(latest research|recent research|research on|research report|sector report)\b/i)) {
+    if (lowerText.match(/\b(latest research|recent research|research on|research report|sector report|participants|key takeaways?|evolved|commentary evolved)\b/i)) {
       return { intent: 'research-reports', dataSource: 'files' };
     }
     
@@ -173,7 +185,7 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
       return { intent: 'earnings-thesis', dataSource: 'files' };
     }
     
-    if (lowerText.match(/\b(summarize|highlight|key takeaway|theme|trend across)\b/i)) {
+    if (lowerText.match(/\b(summarize|highlight|key takeaway|theme|trend across|identify.*themes?|commentary.*changed|industrial cycle)\b/i)) {
       return { intent: 'thematic-analysis', dataSource: 'files' };
     }
     
@@ -181,7 +193,7 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
       return { intent: 'company-sector', dataSource: 'mixed' };
     }
     
-    if (lowerText.match(/\b(over past|last|historical|trend|evolution|over time)\b/i)) {
+    if (lowerText.match(/\b(over past|past two years?|last|historical|trend|evolution|over time|changed over time)\b/i)) {
       return { intent: 'historical-analysis', dataSource: 'mixed' };
     }
     
@@ -442,34 +454,63 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
             <Box sx={{ p: 3, flex: 1, overflow: 'auto' }}>
               <Box sx={{ mb: 3 }}>
                 <Typography variant="h6" gutterBottom fontWeight="600">
-                  Ticker-Based Conversation Starters
+                  Smart Query Suggestions
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Select a company ticker to personalize your prompts.
+                  Select a company ticker and sector to personalize your prompts.
                 </Typography>
                 
-                <FormControl fullWidth sx={{ mb: 3 }}>
-                  <Select
-                    value={selectedTicker}
-                    onChange={(e) => setSelectedTicker(e.target.value)}
-                    sx={{
-                      bgcolor: 'background.paper',
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'divider',
-                      },
-                    }}
-                  >
-                    {availableTickers.map((ticker) => (
-                      <MenuItem key={ticker.symbol} value={ticker.symbol}>
-                        {ticker.symbol} - {ticker.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+                  <FormControl sx={{ flex: 1 }}>
+                    <Typography variant="caption" sx={{ mb: 0.5, fontWeight: 600, color: 'text.secondary' }}>
+                      Ticker
+                    </Typography>
+                    <Select
+                      value={selectedTicker}
+                      onChange={(e) => setSelectedTicker(e.target.value)}
+                      size="small"
+                      sx={{
+                        bgcolor: 'background.paper',
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'divider',
+                        },
+                      }}
+                    >
+                      {availableTickers.map((ticker) => (
+                        <MenuItem key={ticker.symbol} value={ticker.symbol}>
+                          {ticker.symbol} - {ticker.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl sx={{ flex: 1 }}>
+                    <Typography variant="caption" sx={{ mb: 0.5, fontWeight: 600, color: 'text.secondary' }}>
+                      Sector
+                    </Typography>
+                    <Select
+                      value={selectedSector}
+                      onChange={(e) => setSelectedSector(e.target.value)}
+                      size="small"
+                      sx={{
+                        bgcolor: 'background.paper',
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'divider',
+                        },
+                      }}
+                    >
+                      {availableSectors.map((sector) => (
+                        <MenuItem key={sector} value={sector}>
+                          {sector}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
               </Box>
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {getConversationStarters(selectedTicker).map((starter, index) => (
+                {getConversationStarters(selectedTicker, selectedSector).map((starter, index) => (
                   <Paper
                     key={index}
                     elevation={0}

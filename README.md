@@ -7,7 +7,7 @@ A comprehensive investment research platform with AI-powered global chat, intent
 - Material-UI components
 - Document management system interface
 - **Global Chat with Intent Detection** - AI assistant for investment research queries
-- **Smart Query Suggestions** - Dynamic prompts based on selected company
+- **Smart Query Suggestions** - Dynamic prompts based on selected ticker and sector
 - **Citation System** - Source file references with page numbers (AlphaSense-inspired)
 - **Data Source Routing** - Automatic routing to Files, Database, Mixed, or Internet
 
@@ -108,17 +108,34 @@ sequenceDiagram
 
 ### Smart Query Suggestions
 
-The chat includes 5 dynamic query suggestions that update based on selected ticker:
+The chat includes 5 dynamic query suggestions that update based on selected **Ticker** and **Sector**:
 
-1. **Analyst Views** - Get analyst opinions and sentiment
-2. **Price Targets** - Track price target changes over time
-3. **Management Meetings** - View meeting notes and summaries
-4. **Financial Performance** - Analyze financial metrics and performance
-5. **Research Reports** - Access latest research and analysis
+1. **Analyst Views on Ticker** (👥) - "What are our analysts' views on {Ticker}?"
+   - Backend should look for analyst sentiment and opinions on the specific ticker
+
+2. **Latest Research Summary** (📊) - "What does our latest research say about {Ticker}? Include participants, key takeaways, and how commentary evolved over the past 2 years."
+   - Should cover summarization of last 2 years including participants, key takeaways, evolution from oldest to latest, positive/negative sentiment
+   - How has management's commentary on specific issues changed over time
+
+3. **Price Target History** (📈) - "What has been the price target for {Ticker} over the past two years?"
+   - Track price target changes over past 2 years with historical analysis
+
+4. **Sector Management Notes** (🤝) - "Give me all management notes for {Sector} and summarize. Identify key themes around the industrial cycle and how commentary changed over time."
+   - Should cover past 2 years and summarize each management note
+   - Identify key themes around the industrial cycle and how commentary has changed over time
+
+5. **Sector Analyst Sentiment** (🌐) - "What are our analysts' views on {Sector} sector? Summarize overall sentiment including 4-5 recent tickers in that sector."
+   - Summarize 4-5 recent tickers in that sector and cover their sentiments (superset of #2)
+   - Overall analyst sentiment for the entire sector
+
+**Flexible Context Selection:**
+- **Ticker Dropdown**: Select from 8 major tickers (AAPL, MSFT, NVDA, GOOGL, AMZN, META, TSLA, IBM)
+- **Sector Dropdown**: Select from 8 sectors (Technology, Healthcare, Financials, Consumer Discretionary, Industrials, Energy, Materials, Real Estate)
+- Conversation starters dynamically update when either dropdown changes
 
 Each suggestion includes:
 - Category title with icon
-- Ticker-specific question text
+- Dynamic question text with {Ticker} or {Sector} placeholders
 - **Use** button (populates input field)
 - **Copy** button (copies to clipboard)
 
