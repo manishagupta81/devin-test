@@ -13,6 +13,10 @@ import {
   List,
   ListItem,
   ListItemText,
+  Select,
+  MenuItem,
+  Button,
+  FormControl,
 } from '@mui/material';
 import {
   Chat,
@@ -21,6 +25,8 @@ import {
   SmartToy,
   Description,
   OpenInNew,
+  ContentCopy,
+  NearMe,
 } from '@mui/icons-material';
 import { FileItem } from '../types';
 
@@ -51,50 +57,76 @@ interface ConversationStarter {
   category: string;
   icon: string;
   tags: string[];
+  description: string;
 }
 
-const conversationStarters: ConversationStarter[] = [
+const availableTickers = [
+  { symbol: 'AAPL', name: 'Apple Inc.' },
+  { symbol: 'MSFT', name: 'Microsoft Corporation' },
+  { symbol: 'NVDA', name: 'NVIDIA Corporation' },
+  { symbol: 'GOOGL', name: 'Alphabet Inc.' },
+  { symbol: 'AMZN', name: 'Amazon.com Inc.' },
+  { symbol: 'META', name: 'Meta Platforms Inc.' },
+  { symbol: 'TSLA', name: 'Tesla Inc.' },
+  { symbol: 'IBM', name: 'IBM Corporation' },
+];
+
+const getConversationStarters = (ticker: string): ConversationStarter[] => [
   {
-    text: "What are our analysts' views on Technology sector?",
-    intent: 'analyst-opinion',
     category: 'Analyst Sentiment',
+    description: 'Summarize internal analyst sentiment and recommendations.',
+    text: `What are our analysts' views on ${ticker} as of January 2023?`,
+    intent: 'analyst-opinion',
     icon: '👥',
     tags: ['Analyst', 'Views', 'Sentiment'],
   },
   {
-    text: "List recent management meetings in Technology",
-    intent: 'management-meetings',
-    category: 'Executive Meetings',
-    icon: '🤝',
-    tags: ['Meetings', 'Executives', 'Insights'],
+    category: 'Portfolio Rationale',
+    description: "Explain rationale behind PM's current positioning or conviction.",
+    text: `Why does the portfolio manager favor ${ticker}? Include context since January 2023.`,
+    intent: 'investment-decisions',
+    icon: '📊',
+    tags: ['Portfolio', 'Rationale', 'Ticker'],
   },
   {
-    text: "Track price target changes over the past year",
-    intent: 'price-targets',
     category: 'Price Target Timeline',
+    description: 'Track revisions to price targets over time.',
+    text: `Show how the price target for ${ticker} has changed since January 2023.`,
+    intent: 'price-targets',
     icon: '📈',
     tags: ['Price Target', 'Timeline'],
   },
   {
-    text: "Summarize latest research reports on this sector",
-    intent: 'research-reports',
+    category: 'Executive Meetings',
+    description: 'Pull meeting notes and summaries across a specific sector and company.',
+    text: `List recent management meetings related to ${ticker} in the Technology sector since January 2023.`,
+    intent: 'management-meetings',
+    icon: '🤝',
+    tags: ['Meetings', 'Sector', 'Research'],
+  },
+  {
+    category: 'Executive Interactions',
+    description: 'Identify executive interactions and key takeaways.',
+    text: `Have we met with ${ticker}'s CFO or other key executives since January 2023? Summarize key discussion points.`,
+    intent: 'management-meetings',
+    icon: '👔',
+    tags: ['Executives', 'Meetings', 'Insights'],
+  },
+  {
     category: 'Sector Research',
-    icon: '📊',
+    description: 'Aggregate and summarize current sector-level reports.',
+    text: `Summarize the latest research reports on the Technology sector as of January 2023.`,
+    intent: 'research-reports',
+    icon: '📑',
     tags: ['Research', 'Sector', 'Reports'],
   },
   {
-    text: "What companies have profit margins over 30%?",
+    category: 'Comparative Valuation',
+    description: 'Analyze comparative valuation and performance context.',
+    text: `Summarize ${ticker}'s performance and valuation relative to its peers in Technology since January 2023.`,
     intent: 'financial-metrics',
-    category: 'Financial Screening',
     icon: '💰',
     tags: ['Performance', 'Valuation', 'Peers'],
-  },
-  {
-    text: "How has management commentary evolved over time?",
-    intent: 'thematic-analysis',
-    category: 'Thematic Analysis',
-    icon: '📝',
-    tags: ['Theme', 'Trend', 'Evolution'],
   },
 ];
 
@@ -102,6 +134,7 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
+  const [selectedTicker, setSelectedTicker] = useState('NVDA');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -334,9 +367,15 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
     }, 500);
   };
 
-  const handleStarterClick = (starter: typeof conversationStarters[0]) => {
+  const handleStarterClick = (starter: ConversationStarter) => {
     setInputValue(starter.text);
-    logAnalytics('starter_selected', { text: starter.text, intent: starter.intent });
+    logAnalytics('starter_selected', { text: starter.text, intent: starter.intent, ticker: selectedTicker });
+  };
+
+  const handleCopyStarter = (starter: ConversationStarter, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(starter.text);
+    logAnalytics('starter_copied', { text: starter.text, intent: starter.intent, ticker: selectedTicker });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -417,69 +456,63 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
 
           {messages.length === 0 ? (
             <Box sx={{ p: 3, flex: 1, overflow: 'auto' }}>
-              <Box sx={{ mb: 3, textAlign: 'center' }}>
-                <Avatar
-                  sx={{
-                    width: 64,
-                    height: 64,
-                    bgcolor: 'primary.main',
-                    margin: '0 auto 16px',
-                  }}
-                >
-                  <SmartToy fontSize="large" />
-                </Avatar>
+              <Box sx={{ mb: 3 }}>
                 <Typography variant="h6" gutterBottom fontWeight="600">
-                  PRISM Research Intelligence
+                  Ticker-Based Conversation Starters
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Your AI-powered investment research assistant
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Select a company ticker to personalize your prompts.
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 3, display: 'block' }}>
-                  Ask questions about companies, analysts, market trends, or explore insights across {files.length} research documents
-                </Typography>
+                
+                <FormControl fullWidth sx={{ mb: 3 }}>
+                  <Select
+                    value={selectedTicker}
+                    onChange={(e) => setSelectedTicker(e.target.value)}
+                    sx={{
+                      bgcolor: 'background.paper',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'divider',
+                      },
+                    }}
+                  >
+                    {availableTickers.map((ticker) => (
+                      <MenuItem key={ticker.symbol} value={ticker.symbol}>
+                        {ticker.symbol} - {ticker.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Box>
 
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, fontWeight: 600 }}>
-                Quick Start Questions
-              </Typography>
-
-              <List sx={{ gap: 1, display: 'flex', flexDirection: 'column' }}>
-                {conversationStarters.map((starter, index) => (
-                  <ListItem
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {getConversationStarters(selectedTicker).map((starter, index) => (
+                  <Paper
                     key={index}
-                    component={Paper}
                     elevation={1}
                     sx={{
-                      cursor: 'pointer',
+                      p: 2,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
                       transition: 'all 0.2s',
                       '&:hover': {
                         elevation: 3,
                         bgcolor: 'action.hover',
-                        transform: 'translateY(-2px)',
                       },
-                      borderRadius: 2,
-                      mb: 1,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-start',
-                      p: 2,
                     }}
-                    onClick={() => handleStarterClick(starter)}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%', mb: 1 }}>
-                      <Box sx={{ mr: 1.5, fontSize: '1.5rem' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1.5 }}>
+                      <Box sx={{ fontSize: '1.5rem' }}>
                         {starter.icon}
                       </Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
                           {starter.category}
                         </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-                          {starter.text}
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
+                          {starter.description}
                         </Typography>
-                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1.5 }}>
                           {starter.tags.map((tag, tagIdx) => (
                             <Chip
                               key={tagIdx}
@@ -495,11 +528,49 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
                             />
                           ))}
                         </Box>
+                        <Typography variant="body2" sx={{ color: 'text.primary', mb: 1.5, fontStyle: 'italic' }}>
+                          "{starter.text}"
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<NearMe />}
+                            onClick={() => handleStarterClick(starter)}
+                            sx={{
+                              textTransform: 'none',
+                              bgcolor: 'primary.main',
+                              color: 'white',
+                              '&:hover': {
+                                bgcolor: 'primary.dark',
+                              },
+                            }}
+                          >
+                            Use
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<ContentCopy />}
+                            onClick={(e) => handleCopyStarter(starter, e)}
+                            sx={{
+                              textTransform: 'none',
+                              borderColor: 'divider',
+                              color: 'text.secondary',
+                              '&:hover': {
+                                borderColor: 'primary.main',
+                                bgcolor: 'action.hover',
+                              },
+                            }}
+                          >
+                            Copy
+                          </Button>
+                        </Box>
                       </Box>
                     </Box>
-                  </ListItem>
+                  </Paper>
                 ))}
-              </List>
+              </Box>
             </Box>
           ) : (
             <Box
