@@ -7,7 +7,7 @@ A comprehensive investment research platform with AI-powered global chat, intent
 - Material-UI components
 - Document management system interface
 - **Global Chat with Intent Detection** - AI assistant for investment research queries
-- **Ticker-Based Conversation Starters** - Dynamic prompts based on selected company
+- **Smart Query Suggestions** - Dynamic prompts based on selected company
 - **Citation System** - Source file references with page numbers (AlphaSense-inspired)
 - **Data Source Routing** - Automatic routing to Files, Database, Mixed, or Internet
 
@@ -106,22 +106,19 @@ sequenceDiagram
    - Includes inline citations in response text
    - Adds data source indicators (e.g., "📁 Searching files...")
 
-### Ticker-Based Conversation Starters
+### Smart Query Suggestions
 
-The chat includes 7 dynamic conversation starter categories that update based on selected ticker:
+The chat includes 5 dynamic query suggestions that update based on selected ticker:
 
-1. **Analyst Sentiment** - Internal analyst views and recommendations
-2. **Portfolio Rationale** - PM positioning and conviction
-3. **Price Target Timeline** - Price target revisions over time
-4. **Executive Meetings** - Management meetings and sector summaries
-5. **Executive Interactions** - CFO/executive meetings and takeaways
-6. **Sector Research** - Sector-level reports and analysis
-7. **Comparative Valuation** - Performance and valuation vs peers
+1. **Analyst Views** - Get analyst opinions and sentiment
+2. **Price Targets** - Track price target changes over time
+3. **Management Meetings** - View meeting notes and summaries
+4. **Financial Performance** - Analyze financial metrics and performance
+5. **Research Reports** - Access latest research and analysis
 
-Each starter includes:
-- Category title and description
+Each suggestion includes:
+- Category title with icon
 - Ticker-specific question text
-- Contextual tags (Analyst, Views, Portfolio, etc.)
 - **Use** button (populates input field)
 - **Copy** button (copies to clipboard)
 
