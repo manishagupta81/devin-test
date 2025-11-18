@@ -157,8 +157,8 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
   const detectIntent = (text: string): { intent: string; dataSource: 'files' | 'database' | 'internet' | 'mixed' } => {
     const lowerText = text.toLowerCase();
     
-    if (lowerText.match(/\b(view|opinion|favor|think|believe|perspective)\b.*\b(on|about)\b/i) ||
-        lowerText.match(/\b(analyst|expert|researcher|author).*\b(view|opinion|favor|think)\b/i)) {
+    if (lowerText.match(/\b(views?|opinions?|favors?|thinks?|believes?|perspectives?)\b.*\b(on|about)\b/i) ||
+        lowerText.match(/\b(analysts?|experts?|researchers?|authors?).*\b(views?|opinions?|favors?|thinks?)\b/i)) {
       return { intent: 'analyst-opinion', dataSource: 'files' };
     }
     
@@ -484,88 +484,63 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
                 </FormControl>
               </Box>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 {getConversationStarters(selectedTicker).map((starter, index) => (
                   <Paper
                     key={index}
-                    elevation={1}
+                    elevation={0}
                     sx={{
-                      p: 2,
+                      p: 1.5,
                       border: '1px solid',
                       borderColor: 'divider',
-                      borderRadius: 2,
+                      borderRadius: 1.5,
                       transition: 'all 0.2s',
                       '&:hover': {
-                        elevation: 3,
+                        borderColor: 'primary.main',
                         bgcolor: 'action.hover',
                       },
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1.5 }}>
-                      <Box sx={{ fontSize: '1.5rem' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Box sx={{ fontSize: '1.2rem' }}>
                         {starter.icon}
                       </Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
                           {starter.category}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
-                          {starter.description}
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                          {starter.text}
                         </Typography>
-                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1.5 }}>
-                          {starter.tags.map((tag, tagIdx) => (
-                            <Chip
-                              key={tagIdx}
-                              label={tag}
-                              size="small"
-                              sx={{
-                                height: 20,
-                                fontSize: '0.65rem',
-                                bgcolor: 'primary.light',
-                                color: 'primary.dark',
-                                fontWeight: 500,
-                              }}
-                            />
-                          ))}
-                        </Box>
-                        <Typography variant="body2" sx={{ color: 'text.primary', mb: 1.5, fontStyle: 'italic' }}>
-                          "{starter.text}"
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<NearMe />}
-                            onClick={() => handleStarterClick(starter)}
-                            sx={{
-                              textTransform: 'none',
-                              bgcolor: 'primary.main',
-                              color: 'white',
-                              '&:hover': {
-                                bgcolor: 'primary.dark',
-                              },
-                            }}
-                          >
-                            Use
-                          </Button>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<ContentCopy />}
-                            onClick={(e) => handleCopyStarter(starter, e)}
-                            sx={{
-                              textTransform: 'none',
-                              borderColor: 'divider',
-                              color: 'text.secondary',
-                              '&:hover': {
-                                borderColor: 'primary.main',
-                                bgcolor: 'action.hover',
-                              },
-                            }}
-                          >
-                            Copy
-                          </Button>
-                        </Box>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleStarterClick(starter)}
+                          sx={{
+                            bgcolor: 'primary.main',
+                            color: 'white',
+                            '&:hover': {
+                              bgcolor: 'primary.dark',
+                            },
+                          }}
+                        >
+                          <NearMe sx={{ fontSize: 16 }} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => handleCopyStarter(starter, e)}
+                          sx={{
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            '&:hover': {
+                              borderColor: 'primary.main',
+                              bgcolor: 'action.hover',
+                            },
+                          }}
+                        >
+                          <ContentCopy sx={{ fontSize: 16 }} />
+                        </IconButton>
                       </Box>
                     </Box>
                   </Paper>
