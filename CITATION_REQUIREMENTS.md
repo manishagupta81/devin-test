@@ -282,6 +282,116 @@ Hover State:
 - Cursor becomes pointer
 ```
 
+#### 1.9 Conversation Starters
+
+**Purpose**: Provide users with pre-defined question templates that guide them into specific intent categories and help narrow context (by ticker, sector, analyst, etc.).
+
+**Design Inspiration**: AlphaSense's conversation starters with category-based organization and contextual tags.
+
+**Implementation**:
+
+```typescript
+interface ConversationStarter {
+  text: string;        // The question template
+  intent: string;      // The intent category this starter maps to
+  category: string;    // Display category name (e.g., "Analyst Sentiment")
+  icon: string;        // Emoji icon for visual identification
+  tags: string[];      // Contextual tags (e.g., ["Analyst", "Views", "Sentiment"])
+}
+
+const conversationStarters: ConversationStarter[] = [
+  {
+    text: "What are our analysts' views on Technology sector?",
+    intent: 'analyst-opinion',
+    category: 'Analyst Sentiment',
+    icon: '👥',
+    tags: ['Analyst', 'Views', 'Sentiment'],
+  },
+  {
+    text: "List recent management meetings in Technology",
+    intent: 'management-meetings',
+    category: 'Executive Meetings',
+    icon: '🤝',
+    tags: ['Meetings', 'Executives', 'Insights'],
+  },
+  {
+    text: "Track price target changes over the past year",
+    intent: 'price-targets',
+    category: 'Price Target Timeline',
+    icon: '📈',
+    tags: ['Price Target', 'Timeline'],
+  },
+  {
+    text: "Summarize latest research reports on this sector",
+    intent: 'research-reports',
+    category: 'Sector Research',
+    icon: '📊',
+    tags: ['Research', 'Sector', 'Reports'],
+  },
+  {
+    text: "What companies have profit margins over 30%?",
+    intent: 'financial-metrics',
+    category: 'Financial Screening',
+    icon: '💰',
+    tags: ['Performance', 'Valuation', 'Peers'],
+  },
+  {
+    text: "How has management commentary evolved over time?",
+    intent: 'thematic-analysis',
+    category: 'Thematic Analysis',
+    icon: '📝',
+    tags: ['Theme', 'Trend', 'Evolution'],
+  },
+];
+```
+
+**UI Specifications**:
+
+Each conversation starter card should display:
+- **Icon** (emoji, 1.5rem font size) on the left
+- **Category** (subtitle2, bold, 600 weight) at the top
+- **Question text** (body2, text.secondary color) below category
+- **Tags** (small chips, 20px height, 0.65rem font) at the bottom
+  - Background: primary.light
+  - Color: primary.dark
+  - Font weight: 500
+
+**Card Layout**:
+```
+┌────────────────────────────────────────────────────────────┐
+│  👥  Analyst Sentiment                                      │
+│      What are our analysts' views on Technology sector?    │
+│      [Analyst] [Views] [Sentiment]                         │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Card Styling**:
+- Border: 1px solid divider
+- Border radius: 2 (16px)
+- Padding: 2 (16px)
+- Margin bottom: 1 (8px)
+- Cursor: pointer
+- Transition: all 0.2s
+
+**Hover State**:
+- Elevation: 3
+- Background: action.hover
+- Transform: translateY(-2px)
+
+**Click Behavior**:
+- Populate the chat input field with the starter text
+- Log analytics event: `starter_selected` with category and intent
+- User can edit the text before sending (e.g., replace "Technology" with specific ticker)
+
+**Key Design Principles**:
+1. **Dynamic/Generic**: Questions use placeholders like "Technology sector" that users can customize
+2. **Context Narrowing**: Tags help users understand what context they can provide (ticker, sector, analyst name, etc.)
+3. **Intent Mapping**: Each starter maps to a specific intent category for proper routing
+4. **Visual Hierarchy**: Category title → Question → Tags creates clear information hierarchy
+5. **Discoverability**: Icons and tags make it easy to scan and find relevant question types
+
+**Screenshot**: See `docs/images/conversation_starters_alphasense.png` for visual reference
+
 ### 2. Data Model
 
 #### 2.1 Citation Interface

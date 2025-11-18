@@ -45,42 +45,56 @@ interface GlobalChatProps {
   files: FileItem[];
 }
 
-const conversationStarters = [
+interface ConversationStarter {
+  text: string;
+  intent: string;
+  category: string;
+  icon: string;
+  tags: string[];
+}
+
+const conversationStarters: ConversationStarter[] = [
   {
-    text: "What are the key revenue drivers for tech companies in Q4?",
-    intent: 'company',
-    category: 'Company Analysis',
-    icon: '📊',
-  },
-  {
-    text: "Show me recent analyst sentiment on semiconductor stocks",
-    intent: 'analyst',
-    category: 'Analyst Insights',
+    text: "What are our analysts' views on Technology sector?",
+    intent: 'analyst-opinion',
+    category: 'Analyst Sentiment',
     icon: '👥',
+    tags: ['Analyst', 'Views', 'Sentiment'],
   },
   {
-    text: "What's the consensus outlook on interest rates for 2025?",
-    intent: 'team-outlook',
-    category: 'Market Outlook',
-    icon: '🎯',
-  },
-  {
-    text: "Compare earnings performance across major banks this quarter",
-    intent: 'timeframe',
-    category: 'Comparative Analysis',
-    icon: '📈',
-  },
-  {
-    text: "What are the emerging risks in the energy sector?",
-    intent: 'company',
-    category: 'Risk Analysis',
-    icon: '⚠️',
-  },
-  {
-    text: "Summarize recent M&A activity in healthcare",
-    intent: 'timeframe',
-    category: 'M&A Intelligence',
+    text: "List recent management meetings in Technology",
+    intent: 'management-meetings',
+    category: 'Executive Meetings',
     icon: '🤝',
+    tags: ['Meetings', 'Executives', 'Insights'],
+  },
+  {
+    text: "Track price target changes over the past year",
+    intent: 'price-targets',
+    category: 'Price Target Timeline',
+    icon: '📈',
+    tags: ['Price Target', 'Timeline'],
+  },
+  {
+    text: "Summarize latest research reports on this sector",
+    intent: 'research-reports',
+    category: 'Sector Research',
+    icon: '📊',
+    tags: ['Research', 'Sector', 'Reports'],
+  },
+  {
+    text: "What companies have profit margins over 30%?",
+    intent: 'financial-metrics',
+    category: 'Financial Screening',
+    icon: '💰',
+    tags: ['Performance', 'Valuation', 'Peers'],
+  },
+  {
+    text: "How has management commentary evolved over time?",
+    intent: 'thematic-analysis',
+    category: 'Thematic Analysis',
+    icon: '📝',
+    tags: ['Theme', 'Trend', 'Evolution'],
   },
 ];
 
@@ -447,25 +461,42 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
                       mb: 1,
                       border: '1px solid',
                       borderColor: 'divider',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      p: 2,
                     }}
                     onClick={() => handleStarterClick(starter)}
                   >
-                    <Box sx={{ mr: 1.5, fontSize: '1.5rem' }}>
-                      {starter.icon}
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%', mb: 1 }}>
+                      <Box sx={{ mr: 1.5, fontSize: '1.5rem' }}>
+                        {starter.icon}
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                          {starter.category}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                          {starter.text}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                          {starter.tags.map((tag, tagIdx) => (
+                            <Chip
+                              key={tagIdx}
+                              label={tag}
+                              size="small"
+                              sx={{
+                                height: 20,
+                                fontSize: '0.65rem',
+                                bgcolor: 'primary.light',
+                                color: 'primary.dark',
+                                fontWeight: 500,
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      </Box>
                     </Box>
-                    <ListItemText
-                      primary={starter.text}
-                      secondary={starter.category}
-                      primaryTypographyProps={{
-                        variant: 'body2',
-                        fontWeight: 500,
-                      }}
-                      secondaryTypographyProps={{
-                        variant: 'caption',
-                        color: 'primary.main',
-                        fontWeight: 500,
-                      }}
-                    />
                   </ListItem>
                 ))}
               </List>
