@@ -34,6 +34,8 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   SelectChangeEvent,
+  Paper,
+  Grid,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -55,6 +57,10 @@ import {
   ArrowDownward,
   ShowChart,
   CandlestickChart,
+  Timeline,
+  Business,
+  TrendingFlat,
+  Circle,
 } from '@mui/icons-material';
 import {
   LineChart,
@@ -69,8 +75,262 @@ import {
   BarChart,
   Bar,
   ReferenceLine,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  ComposedChart,
 } from 'recharts';
 import yahooFinanceService, { StockQuote, HistoricalDataPoint } from '../services/yahooFinance';
+
+// Key Leading Indicators Data
+const keyLeadingIndicators = [
+  {
+    category: 'Backlog + Revenue Correlation',
+    status: 'positive',
+    items: [
+      { label: 'Lead Time', value: '4 months' },
+      { label: 'Correlation', value: '0.82 (Strong)' },
+      { label: 'Implication', value: 'Current backlog strength suggests revenue upside in Q2/Q3' },
+    ],
+  },
+  {
+    category: 'Hiring Headcount',
+    status: 'neutral',
+    items: [
+      { label: 'Engineering Jobs', value: '+12% QoQ' },
+      { label: 'Sales Headcount', value: '+5% QoQ' },
+      { label: 'Implication', value: 'Company investing for growth, confident in pipeline' },
+    ],
+  },
+  {
+    category: 'Alt-Soft Signals',
+    status: 'positive',
+    items: [
+      { label: 'App Downloads', value: '+15% MoM' },
+      { label: 'Web Traffic', value: '+8% MoM' },
+      { label: 'Credit Card Data', value: '+6% (post-holiday)' },
+      { label: 'Implication', value: 'Strong consumer demand, but seasonal decline expected' },
+    ],
+  },
+];
+
+// Commentary Synthesis Data
+const commentarySynthesis = [
+  {
+    title: 'Strong Dealer Environment',
+    confidence: 'High',
+    source: 'Expert Network',
+    date: '3 days ago',
+    summary: 'Former Apple supply chain exec: "Inventory levels at all-time lows, demand for 5G premium tier remains very strong, particularly in the enterprise segment."',
+    sentiment: 'positive',
+  },
+  {
+    title: 'Strong Retail Demand',
+    confidence: 'High',
+    source: 'ThirdBridge',
+    date: '1 week ago',
+    summary: 'Store managers report ASP mix up 8% YoY. Pro models in 85% inventory. Customer trading up more than prior cycles.',
+    sentiment: 'positive',
+  },
+  {
+    title: 'Risk: China Competition',
+    confidence: 'Medium',
+    source: 'AlphaSense',
+    date: '2 weeks ago',
+    summary: 'Local competitors gaining share in $200-400 segment. Premium tier holding but mid-market pressure increasing.',
+    sentiment: 'negative',
+  },
+  {
+    title: 'Weak Supply Chain',
+    confidence: 'Medium',
+    source: 'Expert Network',
+    date: '3 weeks ago',
+    summary: 'OLED yield issues at LG Display running 5% below target 85%. Could constrain Pro Max availability in Q1.',
+    sentiment: 'negative',
+  },
+];
+
+// Management Tone Analysis
+const managementToneAnalysis = [
+  { category: 'Improving - Sentiment Score', value: 0.72, change: '+0.15 QoQ', trend: 'up' },
+  { category: 'Positive - Services Growth', value: 0.85, description: 'Called out "accelerating" 2x in prepared remarks vs last quarter', trend: 'up' },
+  { category: 'Mixed - China Commentary', value: 0.45, description: 'Acknowledged "macro headwinds" but emphasized premium positioning', trend: 'flat' },
+  { category: 'Strong - Capex Guidance', value: 0.78, description: 'Raised FY24 capex to $15bn vs $12bn "AI infrastructure"', trend: 'up' },
+];
+
+// Competitive & Sell-Side Intelligence
+const sellSideActivity = [
+  { analyst: 'Goldman Sachs', action: 'Initiating coverage', rating: 'Buy', target: '$220', date: '2 days ago' },
+  { analyst: 'Morgan Stanley', action: 'Reiterated', rating: 'Overweight', target: '$215', date: '1 week ago' },
+  { analyst: 'JP Morgan', action: 'Price target raised', rating: 'Buy', target: '$210', date: '2 weeks ago' },
+];
+
+const competitorCommentary = [
+  { company: 'Microsoft', sentiment: 'positive', note: 'Azure growth re-accelerating; AI monetization ahead of expectations' },
+  { company: 'Google', sentiment: 'negative', note: 'Search share erosion concerns; AI integration slower than expected' },
+  { company: 'Samsung', sentiment: 'neutral', note: 'Galaxy S24 launch solid but ASP pressure in mid-tier' },
+];
+
+// Investment Bottom Line
+const investmentBottomLine = {
+  summary: 'Synthesis: Multiple data points suggest Street estimates may be 5-8% too low for FY25.',
+  keyPoints: [
+    'Leading indicators positive: Backlog, alt-data, hiring all supportive of estimates. Under-appreciated AI services opportunity.',
+    'Qualitative improving: Management tone up, expert sentiment bullish, sell-side positioning still conservative.',
+    'Risk: China: The supply constraints and local share loss risk but offset by strength elsewhere, supply constraints manageable.',
+  ],
+  bottomLine: 'Maintain View: Estimates are beatable. Estimates +8% above Street consensus justified by data.',
+};
+
+// Data Quality Scores
+const dataQualityScores = [
+  { source: 'Alt Data', score: 85, color: '#4caf50' },
+  { source: 'Management Commentary', score: 72, color: '#8bc34a' },
+  { source: 'Competitor Intel', score: 68, color: '#cddc39' },
+  { source: 'Sell-Side', score: 55, color: '#ffeb3b' },
+];
+
+// Management Earnings Call Analysis Data
+const earningsCallTrend = [
+  { quarter: 'Q1 2023', sentiment: 0.62, mentions: 45 },
+  { quarter: 'Q2 2023', sentiment: 0.58, mentions: 52 },
+  { quarter: 'Q3 2023', sentiment: 0.65, mentions: 48 },
+  { quarter: 'Q4 2023', sentiment: 0.71, mentions: 61 },
+  { quarter: 'Q1 2024', sentiment: 0.68, mentions: 55 },
+  { quarter: 'Q2 2024', sentiment: 0.75, mentions: 67 },
+  { quarter: 'Q3 2024', sentiment: 0.72, mentions: 58 },
+  { quarter: 'Q4 2024', sentiment: 0.78, mentions: 72 },
+];
+
+const topicBreakdown = [
+  { name: 'iPhone/Hardware', value: 35, color: '#1976d2' },
+  { name: 'Services', value: 25, color: '#d32f2f' },
+  { name: 'AI/ML', value: 20, color: '#388e3c' },
+  { name: 'China/Macro', value: 12, color: '#f57c00' },
+  { name: 'Other', value: 8, color: '#7b1fa2' },
+];
+
+// Revenue Estimates Comparison
+const revenueEstimates = [
+  { period: 'Q1 2024', street: 89.5, internal: 91.2, actual: 90.8 },
+  { period: 'Q2 2024', street: 82.3, internal: 84.1, actual: 85.5 },
+  { period: 'Q3 2024', street: 78.9, internal: 80.5, actual: 81.2 },
+  { period: 'Q4 2024', street: 95.2, internal: 98.5, actual: null },
+  { period: 'Q1 2025', street: 92.1, internal: 96.8, actual: null },
+  { period: 'Q2 2025', street: 85.5, internal: 89.2, actual: null },
+];
+
+// Detailed Estimate Comparison
+const detailedEstimates = [
+  { metric: 'Revenue', q1_street: '$92.1B', q1_internal: '$96.8B', q2_street: '$85.5B', q2_internal: '$89.2B', variance: '+5.1%' },
+  { metric: 'Gross Margin', q1_street: '45.2%', q1_internal: '45.8%', q2_street: '44.8%', q2_internal: '45.5%', variance: '+0.6pp' },
+  { metric: 'EPS', q1_street: '$1.52', q1_internal: '$1.65', q2_street: '$1.38', q2_internal: '$1.48', variance: '+8.6%' },
+  { metric: 'iPhone Units', q1_street: '48.2M', q1_internal: '51.5M', q2_street: '42.1M', q2_internal: '44.8M', variance: '+6.8%' },
+  { metric: 'Services Rev', q1_street: '$23.5B', q1_internal: '$24.8B', q2_street: '$24.2B', q2_internal: '$25.5B', variance: '+5.5%' },
+];
+
+// Expert Network Intelligence
+const expertSentimentByType = [
+  { type: 'Supply Chain', positive: 65, neutral: 25, negative: 10 },
+  { type: 'Retail Channel', positive: 72, neutral: 18, negative: 10 },
+  { type: 'Enterprise', positive: 58, neutral: 30, negative: 12 },
+  { type: 'Competitors', positive: 45, neutral: 35, negative: 20 },
+];
+
+const expertSentimentTrend = [
+  { month: 'Jul', score: 0.62 },
+  { month: 'Aug', score: 0.58 },
+  { month: 'Sep', score: 0.65 },
+  { month: 'Oct', score: 0.71 },
+  { month: 'Nov', score: 0.68 },
+  { month: 'Dec', score: 0.75 },
+  { month: 'Jan', score: 0.72 },
+];
+
+// M Science Alternative Data
+const appStoreDownloads = [
+  { date: 'Jul 1', value: 48.2, ma7: 47.5 },
+  { date: 'Jul 15', value: 51.3, ma7: 49.2 },
+  { date: 'Aug 1', value: 49.8, ma7: 50.1 },
+  { date: 'Aug 15', value: 52.1, ma7: 50.8 },
+  { date: 'Sep 1', value: 55.2, ma7: 52.4 },
+  { date: 'Sep 15', value: 58.7, ma7: 54.9 },
+  { date: 'Oct 1', value: 54.3, ma7: 55.8 },
+  { date: 'Oct 15', value: 52.8, ma7: 54.2 },
+  { date: 'Nov 1', value: 56.1, ma7: 53.9 },
+  { date: 'Nov 15', value: 61.2, ma7: 56.8 },
+  { date: 'Dec 1', value: 68.5, ma7: 61.4 },
+  { date: 'Dec 15', value: 72.3, ma7: 66.2 },
+  { date: 'Jan 1', value: 58.9, ma7: 64.8 },
+  { date: 'Jan 15', value: 51.4, ma7: 58.2 },
+];
+
+const creditCardSpending = [
+  { date: 'Jul 1', value: 985, ma7: 972 },
+  { date: 'Jul 15', value: 1012, ma7: 995 },
+  { date: 'Aug 1', value: 998, ma7: 1002 },
+  { date: 'Aug 15', value: 1025, ma7: 1010 },
+  { date: 'Sep 1', value: 1089, ma7: 1045 },
+  { date: 'Sep 15', value: 1156, ma7: 1098 },
+  { date: 'Oct 1', value: 1078, ma7: 1105 },
+  { date: 'Oct 15', value: 1045, ma7: 1078 },
+  { date: 'Nov 1', value: 1112, ma7: 1068 },
+  { date: 'Nov 15', value: 1198, ma7: 1125 },
+  { date: 'Dec 1', value: 1345, ma7: 1218 },
+  { date: 'Dec 15', value: 1425, ma7: 1312 },
+  { date: 'Jan 1', value: 1156, ma7: 1285 },
+  { date: 'Jan 15', value: 1031.7, ma7: 1178 },
+];
+
+// Recent Intelligence Feed
+const recentIntelligence = [
+  {
+    source: 'Semiconductor Industry Consultant',
+    date: 'Nov 30',
+    topic: 'TSMC N3P production',
+    summary: 'Topic: N3P capacity expansion. "TSMC is running at 95% utilization on N3P. No incremental capacity for Apple until Q2 2025. Performance improvements are substantial."',
+    sentiment: 'positive',
+  },
+  {
+    source: 'Former App Store Business Manager',
+    date: 'Oct 25',
+    topic: 'App Store growth',
+    summary: 'Topic: App Store growth. "New subscription tiers are driving higher ARPU. Gaming subscriptions in particular showing 15% growth. Expect acceleration in Q1."',
+    sentiment: 'positive',
+  },
+  {
+    source: 'Apple China Sales Executive',
+    date: 'Sep 30',
+    topic: 'China competition',
+    summary: 'Topic: China market. "Current Model 16 is winning back market share in tier 1 cities. We are gaining share in premium segment despite macro headwinds."',
+    sentiment: 'neutral',
+  },
+];
+
+const managementCommentary = [
+  {
+    source: 'Tim Cook',
+    date: 'Oct 30',
+    topic: 'China Market',
+    quote: '"We\'re seeing stronger than expected demand in China. Our premium positioning continues to resonate with consumers."',
+    sentiment: 'positive',
+  },
+  {
+    source: 'Tim Cook',
+    date: 'Oct 30',
+    topic: 'AI Investment',
+    quote: '"We\'re making significant investments in AI across our product line. Expect to see meaningful AI features in 2025."',
+    sentiment: 'positive',
+  },
+  {
+    source: 'Luca Maestri',
+    date: 'Oct 30',
+    topic: 'Services Growth',
+    quote: '"Services revenue continues to accelerate. We expect double-digit growth to continue through FY25."',
+    sentiment: 'positive',
+  },
+];
 
 // Synthetic documents data
 const syntheticDocuments = [
@@ -84,54 +344,6 @@ const syntheticDocuments = [
   { id: '8', title: 'NVIDIA AI Chip Demand Report', source: 'AlphaSense', type: 'research', date: '2024-01-23', sentiment: 0.89, ticker: 'NVDA', content: 'H100 demand remains extremely strong...' },
   { id: '9', title: 'Google Search Market Share Update', source: 'Bloomberg', type: 'research', date: '2024-01-22', sentiment: 0.52, ticker: 'GOOGL', content: 'Search market share faces pressure from AI alternatives...' },
   { id: '10', title: 'Amazon AWS Pricing Analysis', source: 'Internal', type: 'note', date: '2024-01-21', sentiment: 0.61, ticker: 'AMZN', content: 'Competitive pricing dynamics in cloud infrastructure...' },
-];
-
-const mockMetrics = [
-  { label: 'Revenue (TTM)', value: '$383.3B', change: 2.8, source: 'FactSet' },
-  { label: 'EPS (TTM)', value: '$6.29', change: 5.2, source: 'Bloomberg' },
-  { label: 'Gross Margin', value: '44.1%', change: -0.3, source: 'FactSet' },
-  { label: 'Operating Margin', value: '29.8%', change: 1.1, source: 'FactSet' },
-  { label: 'FCF (TTM)', value: '$99.6B', change: 8.4, source: 'Bloomberg' },
-  { label: 'ROE', value: '147.3%', change: 12.1, source: 'FactSet' },
-];
-
-const mockConsensus = {
-  rating: 'Buy',
-  targetPrice: 195.50,
-  targetPriceHigh: 220.00,
-  targetPriceLow: 160.00,
-  numAnalysts: 42,
-  buyRatings: 28,
-  holdRatings: 12,
-  sellRatings: 2,
-  epsEstimateQ1: 1.52,
-  epsEstimateQ2: 1.38,
-  revenueEstimateQ1: 90.2,
-  revenueEstimateQ2: 85.5,
-};
-
-const mockAlerts = [
-  { id: '1', type: 'estimate', message: 'Q1 EPS estimate revised up by Goldman Sachs (+$0.05)', severity: 'info', time: '2 hours ago' },
-  { id: '2', type: 'sentiment', message: 'Negative tone shift detected in recent analyst reports', severity: 'warning', time: '5 hours ago' },
-  { id: '3', type: 'data', message: 'New 10-K filing available', severity: 'info', time: '1 day ago' },
-  { id: '4', type: 'price', message: 'Stock crossed above 50-day moving average', severity: 'success', time: '1 day ago' },
-  { id: '5', type: 'alternative', message: 'Job postings increased 15% MoM', severity: 'info', time: '2 days ago' },
-];
-
-const mockSentimentHistory = [
-  { period: 'Q4 2023', score: 0.65, label: 'Positive' },
-  { period: 'Q1 2024', score: 0.58, label: 'Neutral' },
-  { period: 'Q2 2024', score: 0.72, label: 'Positive' },
-  { period: 'Q3 2024', score: 0.68, label: 'Positive' },
-  { period: 'Q4 2024', score: 0.71, label: 'Positive' },
-];
-
-const mockCoverageUniverse = [
-  { ticker: 'AAPL', name: 'Apple Inc.', priority: 'core', lastViewed: '2 hours ago' },
-  { ticker: 'MSFT', name: 'Microsoft Corp.', priority: 'core', lastViewed: '1 day ago' },
-  { ticker: 'GOOGL', name: 'Alphabet Inc.', priority: 'core', lastViewed: '3 days ago' },
-  { ticker: 'NVDA', name: 'NVIDIA Corp.', priority: 'secondary', lastViewed: '1 week ago' },
-  { ticker: 'AMD', name: 'AMD Inc.', priority: 'watchlist', lastViewed: '2 weeks ago' },
 ];
 
 interface TabPanelProps {
@@ -159,6 +371,15 @@ const getSentimentLabel = (score: number) => {
   if (score >= 0.6) return 'Positive';
   if (score >= 0.4) return 'Neutral';
   return 'Negative';
+};
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'positive': return { bg: '#e8f5e9', border: '#4caf50', text: '#2e7d32' };
+    case 'negative': return { bg: '#ffebee', border: '#f44336', text: '#c62828' };
+    case 'neutral': return { bg: '#fff8e1', border: '#ff9800', text: '#f57c00' };
+    default: return { bg: '#f5f5f5', border: '#9e9e9e', text: '#616161' };
+  }
 };
 
 const getAlertIcon = (severity: string) => {
@@ -322,67 +543,557 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header Section */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Ticker</InputLabel>
+    <Box sx={{ p: 2, backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+      {/* Dashboard Header */}
+      <Paper sx={{ p: 2, mb: 2, backgroundColor: '#1a237e' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold' }}>
+              {stockData.symbol} Intelligence Dashboard
+            </Typography>
+            <FormControl size="small" sx={{ minWidth: 100, '& .MuiOutlinedInput-root': { color: 'white', '& fieldset': { borderColor: 'rgba(255,255,255,0.5)' } } }}>
               <Select
                 value={selectedTicker}
-                label="Ticker"
                 onChange={handleTickerChange}
+                sx={{ color: 'white' }}
               >
                 {availableSymbols.map(symbol => (
                   <MenuItem key={symbol} value={symbol}>{symbol}</MenuItem>
                 ))}
               </Select>
             </FormControl>
-            <Typography variant="h4" fontWeight="bold">
-              {stockData.symbol}
-            </Typography>
-            <Chip label={stockData.sector || 'Technology'} size="small" color="primary" variant="outlined" />
-            <IconButton size="small">
-              <Star sx={{ color: '#ffc107' }} />
-            </IconButton>
           </Box>
-          <Typography variant="h6" color="text.secondary">
-            {stockData.longName}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {stockData.industry || 'Consumer Electronics'}
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+            Last Updated: January 24, 2025 at 09:17 AM
           </Typography>
         </Box>
-        <Box sx={{ textAlign: 'right' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end' }}>
-            <Typography variant="h4" fontWeight="bold">
-              ${stockData.regularMarketPrice.toFixed(2)}
-            </Typography>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              color: priceChangeColor
-            }}>
-              {stockData.regularMarketChange >= 0 ? <TrendingUp /> : <TrendingDown />}
-              <Typography variant="body1" fontWeight="medium">
-                {stockData.regularMarketChange >= 0 ? '+' : ''}{stockData.regularMarketChange.toFixed(2)} ({stockData.regularMarketChangePercent.toFixed(2)}%)
-              </Typography>
-            </Box>
-          </Box>
-          <Typography variant="body2" color="text.secondary">
-            Market Cap: {formatMarketCap(stockData.marketCap)} | Vol: {formatVolume(stockData.regularMarketVolume)}
-          </Typography>
-        </Box>
-      </Box>
 
-      {/* Stock Price Chart - Google Finance Style */}
-      <Card sx={{ mb: 3 }}>
+        {/* Key Metrics Bar */}
+        <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+          <Box>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>Revenue (TTM)</Typography>
+            <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>$42,797M</Typography>
+            <Typography variant="caption" sx={{ color: '#4caf50' }}>+15.0% YoY</Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>Gross Margin</Typography>
+            <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>28.3%</Typography>
+            <Typography variant="caption" sx={{ color: '#4caf50' }}>+1.2%pp</Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>SG Gross TTM</Typography>
+            <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>$15,109M</Typography>
+            <Typography variant="caption" sx={{ color: '#4caf50' }}>+12.5% vs Estimate</Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>Quant Sentiment</Typography>
+            <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>0.56/1.0</Typography>
+            <Chip label="Weak" size="small" sx={{ backgroundColor: '#ff9800', color: 'white', height: 20 }} />
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>Data Freshness</Typography>
+            <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>Live</Typography>
+            <Typography variant="caption" sx={{ color: '#4caf50' }}>All sources active</Typography>
+          </Box>
+        </Box>
+
+        {/* Navigation Tabs */}
+        <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          {['Key Takeaways', 'Executive Summary', 'Estimates vs Street', 'Commentary Intelligence', 'Market Context', 'Alternative Data', 'Investment View'].map((tab, index) => (
+            <Chip 
+              key={tab}
+              label={tab}
+              size="small"
+              sx={{ 
+                backgroundColor: index === 0 ? 'white' : 'rgba(255,255,255,0.2)', 
+                color: index === 0 ? '#1a237e' : 'white',
+                '&:hover': { backgroundColor: index === 0 ? 'white' : 'rgba(255,255,255,0.3)' }
+              }}
+            />
+          ))}
+        </Box>
+      </Paper>
+
+      {/* Centralized Investment Takeaways */}
+      <Card sx={{ mb: 2, borderLeft: '4px solid #1a237e' }}>
+        <CardContent sx={{ py: 1.5 }}>
+          <Typography variant="subtitle2" color="primary" fontWeight="bold">
+            Centralized Investment Takeaways
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Synthesized insights across all data sources - Updated daily
+          </Typography>
+        </CardContent>
+      </Card>
+
+      {/* Key Leading Indicators */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Timeline color="primary" /> Key Leading Indicators
+          </Typography>
+          <Grid container spacing={2}>
+            {keyLeadingIndicators.map((indicator, index) => {
+              const colors = getStatusColor(indicator.status);
+              return (
+                <Grid size={{ xs: 12, md: 4 }} key={index}>
+                  <Paper sx={{ p: 2, backgroundColor: colors.bg, borderLeft: `4px solid ${colors.border}`, height: '100%' }}>
+                    <Typography variant="subtitle2" fontWeight="bold" sx={{ color: colors.text, mb: 1 }}>
+                      {indicator.status === 'positive' ? '↑' : indicator.status === 'negative' ? '↓' : '→'} {indicator.category}
+                    </Typography>
+                    {indicator.items.map((item, idx) => (
+                      <Box key={idx} sx={{ mb: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          <strong>{item.label}:</strong> {item.value}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Paper>
+                </Grid>
+              );
+            })}
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Commentary Synthesis */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <People color="primary" /> Commentary Synthesis
+            </Typography>
+            <Typography variant="caption" color="text.secondary">Expert Network Takeaways (Last 60 Days)</Typography>
+          </Box>
+          
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              {commentarySynthesis.map((item, index) => {
+                const colors = getStatusColor(item.sentiment);
+                return (
+                  <Paper key={index} sx={{ p: 1.5, mb: 1, backgroundColor: colors.bg, borderLeft: `3px solid ${colors.border}` }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight="bold">
+                          {item.sentiment === 'positive' ? '↑' : item.sentiment === 'negative' ? '↓' : '→'} {item.title}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Confidence: {item.confidence} | Source: {item.source} | {item.date}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" sx={{ mt: 1, fontSize: '0.8rem' }}>
+                      {item.summary}
+                    </Typography>
+                  </Paper>
+                );
+              })}
+            </Grid>
+            
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 2, backgroundColor: '#f5f5f5' }}>
+                <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 2 }}>Management Tone Analysis</Typography>
+                {managementToneAnalysis.map((item, index) => (
+                  <Box key={index} sx={{ mb: 1.5 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                      <Typography variant="body2" fontWeight="medium">
+                        {item.trend === 'up' ? '↑' : item.trend === 'down' ? '↓' : '→'} {item.category}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: getSentimentColor(item.value) }}>
+                        {item.change || `${(item.value * 100).toFixed(0)}%`}
+                      </Typography>
+                    </Box>
+                    {item.description && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                        {item.description}
+                      </Typography>
+                    )}
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={item.value * 100} 
+                      sx={{ 
+                        height: 4, 
+                        borderRadius: 2,
+                        backgroundColor: '#e0e0e0',
+                        '& .MuiLinearProgress-bar': { backgroundColor: getSentimentColor(item.value) }
+                      }} 
+                    />
+                  </Box>
+                ))}
+              </Paper>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Recent Intelligence Feed */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Assessment color="primary" /> Recent Intelligence Feed
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+            Expert Insights (Last 30 Days)
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              {recentIntelligence.map((item, index) => {
+                const colors = getStatusColor(item.sentiment);
+                return (
+                  <Paper key={index} sx={{ p: 1.5, mb: 1, borderLeft: `3px solid ${colors.border}` }}>
+                    <Typography variant="subtitle2" fontWeight="bold">{item.source} - {item.date}</Typography>
+                    <Typography variant="caption" color="primary">Topic: {item.topic}</Typography>
+                    <Typography variant="body2" sx={{ mt: 0.5, fontSize: '0.8rem' }}>{item.summary}</Typography>
+                  </Paper>
+                );
+              })}
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 2, backgroundColor: '#e3f2fd' }}>
+                <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>Management Commentary (Recent Quarters)</Typography>
+                {managementCommentary.map((item, index) => (
+                  <Box key={index} sx={{ mb: 1.5, pb: 1.5, borderBottom: index < managementCommentary.length - 1 ? '1px solid #bbdefb' : 'none' }}>
+                    <Typography variant="caption" fontWeight="bold">{item.source} - {item.date}</Typography>
+                    <Typography variant="caption" color="primary" sx={{ display: 'block' }}>Topic: {item.topic}</Typography>
+                    <Typography variant="body2" sx={{ fontStyle: 'italic', fontSize: '0.8rem' }}>{item.quote}</Typography>
+                  </Box>
+                ))}
+              </Paper>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Competitive & Sell-Side Intelligence */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Business color="primary" /> Competitive & Sell-Side Intelligence
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>Recent Sell-Side Activity</Typography>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Analyst</TableCell>
+                        <TableCell>Action</TableCell>
+                        <TableCell>Rating</TableCell>
+                        <TableCell>Target</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {sellSideActivity.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{item.analyst}</TableCell>
+                          <TableCell>{item.action}</TableCell>
+                          <TableCell>
+                            <Chip label={item.rating} size="small" color="success" sx={{ height: 20 }} />
+                          </TableCell>
+                          <TableCell>{item.target}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>Competitor Commentary</Typography>
+                {competitorCommentary.map((item, index) => {
+                  const colors = getStatusColor(item.sentiment);
+                  return (
+                    <Box key={index} sx={{ mb: 1, p: 1, backgroundColor: colors.bg, borderRadius: 1 }}>
+                      <Typography variant="body2" fontWeight="bold">{item.company}</Typography>
+                      <Typography variant="caption">{item.note}</Typography>
+                    </Box>
+                  );
+                })}
+              </Paper>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Investment Bottom Line */}
+      <Card sx={{ mb: 2, backgroundColor: '#fff8e1', borderLeft: '4px solid #ff9800' }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Star sx={{ color: '#ff9800' }} /> Investment Bottom Line
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 8 }}>
+              <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>{investmentBottomLine.summary}</Typography>
+              <List dense>
+                {investmentBottomLine.keyPoints.map((point, index) => (
+                  <ListItem key={index} sx={{ py: 0.5 }}>
+                    <ListItemIcon sx={{ minWidth: 24 }}>
+                      <Circle sx={{ fontSize: 8, color: index === 2 ? '#f44336' : '#4caf50' }} />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={<Typography variant="body2">{point}</Typography>}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+              <Paper sx={{ p: 1.5, mt: 1, backgroundColor: '#fff3e0' }}>
+                <Typography variant="body2" fontWeight="bold">{investmentBottomLine.bottomLine}</Typography>
+              </Paper>
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>Data Quality Score</Typography>
+                {dataQualityScores.map((item, index) => (
+                  <Box key={index} sx={{ mb: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                      <Typography variant="caption">{item.source}</Typography>
+                      <Typography variant="caption" fontWeight="bold">{item.score}%</Typography>
+                    </Box>
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={item.score} 
+                      sx={{ 
+                        height: 8, 
+                        borderRadius: 4,
+                        backgroundColor: '#e0e0e0',
+                        '& .MuiLinearProgress-bar': { backgroundColor: item.color }
+                      }} 
+                    />
+                  </Box>
+                ))}
+              </Paper>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Management Earnings Call Analysis */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+            Management Earnings Call Analysis
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 8 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Management Sentiment Trend</Typography>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={earningsCallTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="quarter" tick={{ fontSize: 10 }} />
+                  <YAxis domain={[0.5, 0.9]} tick={{ fontSize: 10 }} />
+                  <RechartsTooltip />
+                  <Line type="monotone" dataKey="sentiment" stroke="#1976d2" strokeWidth={2} dot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Topic Breakdown</Typography>
+              <Typography variant="caption" color="text.secondary">Management Focus Areas</Typography>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={topicBreakdown}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={70}
+                    dataKey="value"
+                    label={({ name, value }) => `${value}%`}
+                  >
+                    {topicBreakdown.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Legend 
+                    layout="vertical" 
+                    align="right" 
+                    verticalAlign="middle"
+                    formatter={(value) => <span style={{ fontSize: '10px' }}>{value}</span>}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Revenue Estimates Comparison */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>
+            Revenue Estimates Comparison
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+            Forward Revenue Estimates: Deviator vs Street
+          </Typography>
+          
+          <ResponsiveContainer width="100%" height={250}>
+            <ComposedChart data={revenueEstimates}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="period" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} domain={[70, 100]} />
+              <RechartsTooltip />
+              <Legend />
+              <Area type="monotone" dataKey="street" fill="#e3f2fd" stroke="#1976d2" name="Street Estimate" />
+              <Line type="monotone" dataKey="internal" stroke="#4caf50" strokeWidth={2} name="Internal Estimate" />
+              <Line type="monotone" dataKey="actual" stroke="#f44336" strokeWidth={2} strokeDasharray="5 5" name="Actual" />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Detailed Estimate Comparison */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+            Detailed Estimate Comparison
+          </Typography>
+          
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                  <TableCell>Metric</TableCell>
+                  <TableCell>Q1 Street</TableCell>
+                  <TableCell>Q1 Internal</TableCell>
+                  <TableCell>Q2 Street</TableCell>
+                  <TableCell>Q2 Internal</TableCell>
+                  <TableCell>Variance</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {detailedEstimates.map((row, index) => (
+                  <TableRow key={index}>
+                    <TableCell sx={{ fontWeight: 'bold' }}>{row.metric}</TableCell>
+                    <TableCell>{row.q1_street}</TableCell>
+                    <TableCell sx={{ backgroundColor: '#e8f5e9' }}>{row.q1_internal}</TableCell>
+                    <TableCell>{row.q2_street}</TableCell>
+                    <TableCell sx={{ backgroundColor: '#e8f5e9' }}>{row.q2_internal}</TableCell>
+                    <TableCell sx={{ backgroundColor: '#c8e6c9', fontWeight: 'bold', color: '#2e7d32' }}>{row.variance}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+
+      {/* Expert Network Intelligence */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+            Expert Network Intelligence
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Ratings Sentiment by Expert Type</Typography>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={expertSentimentByType} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} />
+                  <YAxis type="category" dataKey="type" tick={{ fontSize: 10 }} width={80} />
+                  <RechartsTooltip />
+                  <Bar dataKey="positive" stackId="a" fill="#4caf50" name="Positive" />
+                  <Bar dataKey="neutral" stackId="a" fill="#ff9800" name="Neutral" />
+                  <Bar dataKey="negative" stackId="a" fill="#f44336" name="Negative" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Expert Sentiment Trend</Typography>
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={expertSentimentTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                  <YAxis domain={[0.5, 0.8]} tick={{ fontSize: 10 }} />
+                  <RechartsTooltip />
+                  <Area type="monotone" dataKey="score" fill="#c8e6c9" stroke="#4caf50" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* M Science Alternative Data */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ShowChart color="primary" /> M Science Alternative Data
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="subtitle2">App Store Daily Downloads</Typography>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="h6" fontWeight="bold">51.4</Typography>
+                    <Typography variant="caption" color="text.secondary">Rolling Avg</Typography>
+                  </Box>
+                </Box>
+                <Typography variant="caption" color="text.secondary">App Store Daily Downloads Trend</Typography>
+                <ResponsiveContainer width="100%" height={150}>
+                  <LineChart data={appStoreDownloads}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fontSize: 8 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <RechartsTooltip />
+                    <Line type="monotone" dataKey="value" stroke="#f44336" strokeWidth={1} dot={false} name="Daily" />
+                    <Line type="monotone" dataKey="ma7" stroke="#1976d2" strokeWidth={2} dot={false} name="7-Day MA" />
+                  </LineChart>
+                </ResponsiveContainer>
+                <Typography variant="caption" color="text.secondary">Data Type: app_intelligence</Typography>
+              </Paper>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="subtitle2">Apple Store Credit Card Spending</Typography>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="h6" fontWeight="bold">1031.7</Typography>
+                    <Typography variant="caption" color="text.secondary">Rolling Avg</Typography>
+                  </Box>
+                </Box>
+                <Typography variant="caption" color="text.secondary">Apple Store Credit Card Spending Trend</Typography>
+                <ResponsiveContainer width="100%" height={150}>
+                  <LineChart data={creditCardSpending}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fontSize: 8 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <RechartsTooltip />
+                    <Line type="monotone" dataKey="value" stroke="#f44336" strokeWidth={1} dot={false} name="Daily" />
+                    <Line type="monotone" dataKey="ma7" stroke="#1976d2" strokeWidth={2} dot={false} name="7-Day MA" />
+                  </LineChart>
+                </ResponsiveContainer>
+                <Typography variant="caption" color="text.secondary">Data Type: credit_card</Typography>
+              </Paper>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Stock Price Chart */}
+      <Card sx={{ mb: 2 }}>
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Typography variant="h6" fontWeight="bold">
-                Price Chart
+                Stock Price: ${stockData.regularMarketPrice.toFixed(2)}
+              </Typography>
+              <Typography 
+                variant="body1" 
+                sx={{ color: priceChangeColor, fontWeight: 'bold' }}
+              >
+                {stockData.regularMarketChange >= 0 ? '+' : ''}{stockData.regularMarketChange.toFixed(2)} ({stockData.regularMarketChangePercent.toFixed(2)}%)
               </Typography>
               <ToggleButtonGroup
                 value={chartType}
@@ -415,11 +1126,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
           </Box>
           
           {chartLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 250 }}>
               <CircularProgress />
             </Box>
           ) : (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               {chartType === 'area' ? (
                 <AreaChart data={formattedChartData}>
                   <defs>
@@ -431,12 +1142,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
                   <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                   <XAxis 
                     dataKey="displayDate" 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 10 }}
                     interval="preserveStartEnd"
                   />
                   <YAxis 
                     domain={[chartMin, chartMax]}
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 10 }}
                     tickFormatter={(value) => `$${value.toFixed(0)}`}
                   />
                   <RechartsTooltip 
@@ -459,12 +1170,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
                   <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                   <XAxis 
                     dataKey="displayDate" 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 10 }}
                     interval="preserveStartEnd"
                   />
                   <YAxis 
                     domain={[chartMin, chartMax]}
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 10 }}
                     tickFormatter={(value) => `$${value.toFixed(0)}`}
                   />
                   <RechartsTooltip 
@@ -488,7 +1199,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
           {/* Volume Chart */}
           <Box sx={{ mt: 2 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Volume</Typography>
-            <ResponsiveContainer width="100%" height={60}>
+            <ResponsiveContainer width="100%" height={50}>
               <BarChart data={formattedChartData}>
                 <XAxis dataKey="displayDate" hide />
                 <YAxis hide />
@@ -499,465 +1210,62 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
         </CardContent>
       </Card>
 
-      {/* Search Bar */}
-      <Box sx={{ mb: 3 }}>
-        <TextField
-          fullWidth
-          placeholder="Search across all documents, transcripts, and research for this company..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ 
-            '& .MuiOutlinedInput-root': { 
-              backgroundColor: 'white',
-              borderRadius: 2,
-            } 
-          }}
-        />
-      </Box>
-
-      {/* Main Dashboard Layout */}
-      <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-        {/* Left Column - Key Metrics & Documents */}
-        <Box sx={{ flex: '1 1 65%', minWidth: 400 }}>
-          {/* Key Metrics */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" fontWeight="bold">
-                  Key Metrics
-                </Typography>
-                <Box>
-                  <Tooltip title="Refresh data">
-                    <IconButton size="small">
-                      <Refresh />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Filter">
-                    <IconButton size="small">
-                      <FilterList />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                {mockMetrics.map((metric, index) => (
-                  <Box key={index} sx={{ flex: '1 1 calc(33.333% - 16px)', minWidth: 150 }}>
-                    <Box sx={{ p: 2, backgroundColor: '#f5f5f5', borderRadius: 2 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {metric.label}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="h6" fontWeight="bold">
-                          {metric.value}
-                        </Typography>
-                        <Box sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center',
-                          color: metric.change >= 0 ? '#4caf50' : '#f44336',
-                          fontSize: '0.75rem'
-                        }}>
-                          {metric.change >= 0 ? <ArrowUpward sx={{ fontSize: 14 }} /> : <ArrowDownward sx={{ fontSize: 14 }} />}
-                          {Math.abs(metric.change)}%
-                        </Box>
-                      </Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Source: {metric.source}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
-            </CardContent>
-          </Card>
-
-          {/* Consensus Estimates */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
-                Consensus Estimates
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                <Box sx={{ flex: '1 1 30%', minWidth: 150 }}>
-                  <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#e8f5e9', borderRadius: 2 }}>
-                    <Typography variant="h4" fontWeight="bold" color="success.main">
-                      {mockConsensus.rating}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Consensus Rating
-                    </Typography>
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="body2">
-                        {mockConsensus.buyRatings} Buy | {mockConsensus.holdRatings} Hold | {mockConsensus.sellRatings} Sell
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
-                <Box sx={{ flex: '1 1 30%', minWidth: 150 }}>
-                  <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f5f5f5', borderRadius: 2 }}>
-                    <Typography variant="h4" fontWeight="bold">
-                      ${mockConsensus.targetPrice.toFixed(2)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Price Target (Avg)
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Range: ${mockConsensus.targetPriceLow} - ${mockConsensus.targetPriceHigh}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Box sx={{ flex: '1 1 30%', minWidth: 150 }}>
-                  <Box sx={{ p: 2, backgroundColor: '#f5f5f5', borderRadius: 2 }}>
-                    <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
-                      EPS Estimates
-                    </Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">Q1 2025:</Typography>
-                      <Typography variant="body2" fontWeight="bold">${mockConsensus.epsEstimateQ1}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">Q2 2025:</Typography>
-                      <Typography variant="body2" fontWeight="bold">${mockConsensus.epsEstimateQ2}</Typography>
-                    </Box>
-                  </Box>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-
-          {/* Documents Section with Tabs */}
-          <Card>
-            <CardContent>
-              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs value={tabValue} onChange={handleTabChange}>
-                  <Tab label={`All Documents (${getDocumentsByType(null).length})`} />
-                  <Tab label={`Transcripts (${getDocumentsByType('transcript').length})`} />
-                  <Tab label={`Research (${getDocumentsByType('research').length})`} />
-                  <Tab label={`Internal Notes (${getDocumentsByType('note').length + getDocumentsByType('memo').length})`} />
-                  <Tab label={`Expert Calls (${getDocumentsByType('expert').length})`} />
-                </Tabs>
-              </Box>
-              <TabPanel value={tabValue} index={0}>
-                <DocumentTable documents={getDocumentsByType(null)} />
-              </TabPanel>
-              <TabPanel value={tabValue} index={1}>
-                <DocumentTable documents={getDocumentsByType('transcript')} />
-              </TabPanel>
-              <TabPanel value={tabValue} index={2}>
-                <DocumentTable documents={getDocumentsByType('research')} />
-              </TabPanel>
-              <TabPanel value={tabValue} index={3}>
-                <DocumentTable documents={[...getDocumentsByType('note'), ...getDocumentsByType('memo')]} />
-              </TabPanel>
-              <TabPanel value={tabValue} index={4}>
-                <DocumentTable documents={getDocumentsByType('expert')} />
-              </TabPanel>
-            </CardContent>
-          </Card>
-        </Box>
-
-        {/* Right Column - Alerts, Sentiment, Competitors */}
-        <Box sx={{ flex: '1 1 30%', minWidth: 300 }}>
-          {/* Alerts Panel */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" fontWeight="bold">
-                  Alerts
-                </Typography>
-                <Chip 
-                  icon={<NotificationsActive sx={{ fontSize: 16 }} />} 
-                  label={mockAlerts.length} 
-                  size="small" 
-                  color="primary" 
-                />
-              </Box>
-              <List dense>
-                {mockAlerts.map((alert) => (
-                  <ListItem key={alert.id} sx={{ px: 0 }}>
-                    <ListItemIcon sx={{ minWidth: 36 }}>
-                      {getAlertIcon(alert.severity)}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Typography variant="body2">
-                          {alert.message}
-                        </Typography>
-                      }
-                      secondary={alert.time}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-              <Button variant="outlined" fullWidth size="small" sx={{ mt: 1 }}>
-                Configure Alerts
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Sentiment Trend */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
-                Sentiment Trend
-              </Typography>
-              <Box sx={{ mb: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">Current Sentiment</Typography>
-                  <Typography variant="body2" fontWeight="bold" sx={{ color: getSentimentColor(0.71) }}>
-                    Positive (0.71)
-                  </Typography>
-                </Box>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={71} 
-                  sx={{ 
-                    height: 8, 
-                    borderRadius: 4,
-                    backgroundColor: '#e0e0e0',
-                    '& .MuiLinearProgress-bar': {
-                      backgroundColor: getSentimentColor(0.71),
-                      borderRadius: 4,
-                    }
-                  }} 
-                />
-              </Box>
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
-                Historical Trend
-              </Typography>
-              {mockSentimentHistory.map((item, index) => (
-                <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {item.period}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ 
-                      width: 40, 
-                      height: 4, 
-                      backgroundColor: '#e0e0e0', 
-                      borderRadius: 2,
-                      overflow: 'hidden'
-                    }}>
-                      <Box sx={{ 
-                        width: `${item.score * 100}%`, 
-                        height: '100%', 
-                        backgroundColor: getSentimentColor(item.score),
-                        borderRadius: 2
-                      }} />
-                    </Box>
-                    <Typography variant="caption" sx={{ color: getSentimentColor(item.score), minWidth: 50 }}>
-                      {item.label}
-                    </Typography>
-                  </Box>
-                </Box>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Competitors - Now with real data */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
-                Competitors
-              </Typography>
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Ticker</TableCell>
-                      <TableCell align="right">Price</TableCell>
-                      <TableCell align="right">Change</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {competitors.map((comp) => (
-                      <TableRow 
-                        key={comp.symbol} 
-                        hover 
-                        sx={{ cursor: 'pointer' }}
-                        onClick={() => handleCompanyClick(comp.symbol)}
-                      >
-                        <TableCell>
-                          <Box>
-                            <Typography variant="body2" fontWeight="bold">
-                              {comp.symbol}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {comp.shortName}
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell align="right">
-                          ${comp.regularMarketPrice.toFixed(2)}
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography 
-                            variant="body2" 
-                            sx={{ color: comp.regularMarketChangePercent >= 0 ? '#4caf50' : '#f44336' }}
-                          >
-                            {comp.regularMarketChangePercent >= 0 ? '+' : ''}{comp.regularMarketChangePercent.toFixed(2)}%
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-
-          {/* Coverage Universe */}
-          <Card>
-            <CardContent>
-              <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
-                My Coverage Universe
-              </Typography>
-              <List dense>
-                {mockCoverageUniverse.map((company) => (
-                  <ListItem 
-                    key={company.ticker} 
-                    sx={{ px: 0, cursor: 'pointer' }}
-                    onClick={() => handleCompanyClick(company.ticker)}
+      {/* Competitors */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+            Competitors
+          </Typography>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Ticker</TableCell>
+                  <TableCell align="right">Price</TableCell>
+                  <TableCell align="right">Change</TableCell>
+                  <TableCell align="right">Market Cap</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {competitors.map((comp) => (
+                  <TableRow 
+                    key={comp.symbol} 
+                    hover 
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => handleCompanyClick(comp.symbol)}
                   >
-                    <ListItemAvatar>
-                      <Avatar sx={{ 
-                        width: 32, 
-                        height: 32, 
-                        fontSize: '0.75rem',
-                        backgroundColor: company.priority === 'core' ? 'primary.main' : 
-                                        company.priority === 'secondary' ? 'secondary.main' : 'grey.400'
-                      }}>
-                        {company.ticker.substring(0, 2)}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2" fontWeight="bold">
-                            {company.ticker}
-                          </Typography>
-                          <Chip 
-                            label={company.priority} 
-                            size="small" 
-                            sx={{ 
-                              height: 18, 
-                              fontSize: '0.65rem',
-                              backgroundColor: company.priority === 'core' ? '#e3f2fd' : 
-                                              company.priority === 'secondary' ? '#fff3e0' : '#f5f5f5'
-                            }} 
-                          />
-                        </Box>
-                      }
-                      secondary={`Last viewed: ${company.lastViewed}`}
-                    />
-                    <IconButton size="small">
-                      {company.priority === 'core' ? <Star sx={{ color: '#ffc107', fontSize: 18 }} /> : <StarBorder sx={{ fontSize: 18 }} />}
-                    </IconButton>
-                  </ListItem>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body2" fontWeight="bold">
+                          {comp.symbol}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {comp.shortName}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell align="right">
+                      ${comp.regularMarketPrice.toFixed(2)}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography 
+                        variant="body2" 
+                        sx={{ color: comp.regularMarketChangePercent >= 0 ? '#4caf50' : '#f44336' }}
+                      >
+                        {comp.regularMarketChangePercent >= 0 ? '+' : ''}{comp.regularMarketChangePercent.toFixed(2)}%
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      {formatMarketCap(comp.marketCap)}
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </List>
-              <Button variant="outlined" fullWidth size="small" sx={{ mt: 1 }}>
-                Manage Coverage
-              </Button>
-            </CardContent>
-          </Card>
-        </Box>
-      </Box>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
     </Box>
-  );
-};
-
-// Document Table Component
-interface DocumentTableProps {
-  documents: typeof syntheticDocuments;
-}
-
-const DocumentTable: React.FC<DocumentTableProps> = ({ documents }) => {
-  if (documents.length === 0) {
-    return (
-      <Box sx={{ textAlign: 'center', py: 4 }}>
-        <Typography color="text.secondary">No documents found</Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <>
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Document</TableCell>
-              <TableCell>Source</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Sentiment</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {documents.map((doc) => (
-              <TableRow key={doc.id} hover sx={{ cursor: 'pointer' }}>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {getDocumentIcon(doc.type)}
-                    <Box>
-                      <Typography variant="body2" fontWeight="medium">
-                        {doc.title}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {doc.type.charAt(0).toUpperCase() + doc.type.slice(1)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Chip label={doc.source} size="small" variant="outlined" />
-                </TableCell>
-                <TableCell>{doc.date}</TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ 
-                      width: 60, 
-                      height: 6, 
-                      backgroundColor: '#e0e0e0', 
-                      borderRadius: 3,
-                      overflow: 'hidden'
-                    }}>
-                      <Box sx={{ 
-                        width: `${doc.sentiment * 100}%`, 
-                        height: '100%', 
-                        backgroundColor: getSentimentColor(doc.sentiment),
-                        borderRadius: 3
-                      }} />
-                    </Box>
-                    <Typography variant="caption" sx={{ color: getSentimentColor(doc.sentiment) }}>
-                      {getSentimentLabel(doc.sentiment)}
-                    </Typography>
-                  </Box>
-                </TableCell>
-                <TableCell align="right">
-                  <IconButton size="small">
-                    <OpenInNew fontSize="small" />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <Box sx={{ mt: 2, textAlign: 'center' }}>
-        <Button variant="text" color="primary">
-          View All Documents
-        </Button>
-      </Box>
-    </>
   );
 };
 
