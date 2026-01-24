@@ -346,6 +346,56 @@ const syntheticDocuments = [
   { id: '10', title: 'Amazon AWS Pricing Analysis', source: 'Internal', type: 'note', date: '2024-01-21', sentiment: 0.61, ticker: 'AMZN', content: 'Competitive pricing dynamics in cloud infrastructure...' },
 ];
 
+// Quantitative Analysis Data - Sales per Employee
+const salesPerEmployee = [
+  { year: '2019', value: 1.92 },
+  { year: '2020', value: 2.15 },
+  { year: '2021', value: 2.38 },
+  { year: '2022', value: 2.52 },
+  { year: '2023', value: 2.68 },
+  { year: '2024', value: 2.85 },
+];
+
+// Cash Flow Margins (Operating and Free Cash Flow)
+const cashFlowMargins = [
+  { year: '2019', operatingCF: 24.5, freeCF: 21.2 },
+  { year: '2020', operatingCF: 26.8, freeCF: 23.5 },
+  { year: '2021', operatingCF: 28.2, freeCF: 25.1 },
+  { year: '2022', operatingCF: 27.5, freeCF: 24.8 },
+  { year: '2023', operatingCF: 29.1, freeCF: 26.2 },
+  { year: '2024', operatingCF: 30.5, freeCF: 27.8 },
+];
+
+// Historical Annual Growth Rate
+const historicalGrowthRate = [
+  { year: '2019', revenue: 5.2, earnings: 7.8, eps: 10.2 },
+  { year: '2020', revenue: 8.5, earnings: 12.4, eps: 15.1 },
+  { year: '2021', revenue: 15.2, earnings: 18.5, eps: 21.3 },
+  { year: '2022', revenue: 8.1, earnings: 5.2, eps: 8.9 },
+  { year: '2023', revenue: 12.5, earnings: 14.8, eps: 16.2 },
+  { year: '2024', revenue: 15.0, earnings: 18.2, eps: 19.5 },
+];
+
+// Profitability Margins (EBITDA, EBIT, EPS Growth)
+const profitabilityMargins = [
+  { year: '2019', ebitda: 32.5, ebit: 28.2, netMargin: 21.5 },
+  { year: '2020', ebitda: 34.2, ebit: 29.8, netMargin: 23.1 },
+  { year: '2021', ebitda: 35.8, ebit: 31.5, netMargin: 25.2 },
+  { year: '2022', ebitda: 34.5, ebit: 30.2, netMargin: 24.5 },
+  { year: '2023', ebitda: 36.2, ebit: 32.1, netMargin: 26.1 },
+  { year: '2024', ebitda: 37.5, ebit: 33.5, netMargin: 27.8 },
+];
+
+// EPS Historical Data
+const epsHistory = [
+  { year: '2019', eps: 2.97, growth: 10.2 },
+  { year: '2020', eps: 3.28, growth: 10.4 },
+  { year: '2021', eps: 5.61, growth: 71.0 },
+  { year: '2022', eps: 6.11, growth: 8.9 },
+  { year: '2023', eps: 6.13, growth: 0.3 },
+  { year: '2024', eps: 6.42, growth: 4.7 },
+];
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
@@ -1075,6 +1125,133 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
                   </LineChart>
                 </ResponsiveContainer>
                 <Typography variant="caption" color="text.secondary">Data Type: credit_card</Typography>
+              </Paper>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Quantitative Analysis Section */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Assessment color="primary" /> Quantitative Analysis
+          </Typography>
+          
+          <Grid container spacing={2}>
+            {/* Sales per Employee */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Sales per Employee ($M)</Typography>
+                <Typography variant="caption" color="text.secondary">Historical trend showing revenue efficiency</Typography>
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={salesPerEmployee}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="year" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} domain={[0, 3.5]} tickFormatter={(v) => `$${v}M`} />
+                    <RechartsTooltip formatter={(value) => [`$${Number(value).toFixed(2)}M`, 'Sales/Employee']} />
+                    <Bar dataKey="value" fill="#1976d2" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary">2024: $2.85M</Typography>
+                  <Typography variant="caption" sx={{ color: '#4caf50' }}>+6.3% YoY</Typography>
+                </Box>
+              </Paper>
+            </Grid>
+
+            {/* Cash Flow Margins */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Cash Flow Margins (%)</Typography>
+                <Typography variant="caption" color="text.secondary">Operating CF vs Free Cash Flow Margin</Typography>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={cashFlowMargins}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="year" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} domain={[15, 35]} tickFormatter={(v) => `${v}%`} />
+                    <RechartsTooltip formatter={(value) => [`${Number(value).toFixed(1)}%`]} />
+                    <Legend wrapperStyle={{ fontSize: '10px' }} />
+                    <Line type="monotone" dataKey="operatingCF" stroke="#1976d2" strokeWidth={2} name="Operating CF" dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="freeCF" stroke="#4caf50" strokeWidth={2} name="Free CF" dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary">OCF: 30.5% | FCF: 27.8%</Typography>
+                  <Typography variant="caption" sx={{ color: '#4caf50' }}>+1.4pp / +1.6pp YoY</Typography>
+                </Box>
+              </Paper>
+            </Grid>
+
+            {/* Historical Annual Growth Rate */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Historical Annual Growth Rate (%)</Typography>
+                <Typography variant="caption" color="text.secondary">Revenue, Earnings, and EPS Growth</Typography>
+                <ResponsiveContainer width="100%" height={180}>
+                  <ComposedChart data={historicalGrowthRate}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="year" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} />
+                    <RechartsTooltip formatter={(value) => [`${Number(value).toFixed(1)}%`]} />
+                    <Legend wrapperStyle={{ fontSize: '10px' }} />
+                    <Bar dataKey="revenue" fill="#1976d2" name="Revenue" radius={[2, 2, 0, 0]} />
+                    <Line type="monotone" dataKey="earnings" stroke="#f57c00" strokeWidth={2} name="Earnings" dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="eps" stroke="#4caf50" strokeWidth={2} name="EPS" dot={{ r: 3 }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary">2024: Rev +15.0% | Earn +18.2%</Typography>
+                  <Typography variant="caption" sx={{ color: '#4caf50' }}>EPS +19.5%</Typography>
+                </Box>
+              </Paper>
+            </Grid>
+
+            {/* Profitability Margins */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Profitability Margins (%)</Typography>
+                <Typography variant="caption" color="text.secondary">EBITDA, EBIT, and Net Margin</Typography>
+                <ResponsiveContainer width="100%" height={180}>
+                  <AreaChart data={profitabilityMargins}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="year" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} domain={[15, 45]} tickFormatter={(v) => `${v}%`} />
+                    <RechartsTooltip formatter={(value) => [`${Number(value).toFixed(1)}%`]} />
+                    <Legend wrapperStyle={{ fontSize: '10px' }} />
+                    <Area type="monotone" dataKey="ebitda" fill="#bbdefb" stroke="#1976d2" strokeWidth={2} name="EBITDA" />
+                    <Area type="monotone" dataKey="ebit" fill="#c8e6c9" stroke="#4caf50" strokeWidth={2} name="EBIT" />
+                    <Area type="monotone" dataKey="netMargin" fill="#ffe0b2" stroke="#f57c00" strokeWidth={2} name="Net Margin" />
+                  </AreaChart>
+                </ResponsiveContainer>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary">EBITDA: 37.5% | EBIT: 33.5%</Typography>
+                  <Typography variant="caption" sx={{ color: '#4caf50' }}>Net: 27.8%</Typography>
+                </Box>
+              </Paper>
+            </Grid>
+
+            {/* EPS History */}
+            <Grid size={{ xs: 12 }}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>EPS History & Growth</Typography>
+                <Typography variant="caption" color="text.secondary">Earnings Per Share with YoY Growth Rate</Typography>
+                <ResponsiveContainer width="100%" height={200}>
+                  <ComposedChart data={epsHistory}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="year" tick={{ fontSize: 10 }} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v}`} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} />
+                    <RechartsTooltip />
+                    <Legend wrapperStyle={{ fontSize: '10px' }} />
+                    <Bar yAxisId="left" dataKey="eps" fill="#1976d2" name="EPS ($)" radius={[4, 4, 0, 0]} />
+                    <Line yAxisId="right" type="monotone" dataKey="growth" stroke="#f57c00" strokeWidth={2} name="Growth (%)" dot={{ r: 4 }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary">2024 EPS: $6.42</Typography>
+                  <Typography variant="caption" sx={{ color: '#4caf50' }}>+4.7% YoY | 5Y CAGR: 16.7%</Typography>
+                </Box>
               </Paper>
             </Grid>
           </Grid>
