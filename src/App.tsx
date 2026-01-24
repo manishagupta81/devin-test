@@ -31,6 +31,7 @@ import {
   Android as AndroidIcon,
   ExpandLess,
   NoteAdd,
+  Business,
 } from '@mui/icons-material';
 import { FileItem, FileCategory, TickerSubscription, TeamSubscription } from './types';
 import FileList from './components/FileList';
@@ -38,6 +39,7 @@ import FileUpload from './components/FileUpload';
 import IRNEditor from './components/IRNEditor';
 import SubscriptionsManager from './components/SubscriptionsManager';
 import GlobalChat from './components/GlobalChat';
+import CompanyDashboard from './components/CompanyDashboard';
 
 const theme = createTheme({
   palette: {
@@ -103,14 +105,15 @@ function App() {
   const [teamSubscriptions, setTeamSubscriptions] = useState<TeamSubscription[]>([]);
   const [irnEditorOpen, setIrnEditorOpen] = useState(false);
 
-  const menuItems = [
-    { id: 'overview', label: 'Overview', icon: <Dashboard /> },
-    { id: 'ai-reports', label: 'AI Generated Reports', icon: <SmartToy /> },
-    { id: 'external-files', label: 'External Files', icon: <FolderOpen /> },
-    { id: 'internal-research', label: 'Internal Research', icon: <Science /> },
-    { id: 'agents', label: 'Agents', icon: <AndroidIcon /> },
-    { id: 'settings', label: 'Settings', icon: <Settings /> },
-  ];
+    const menuItems = [
+      { id: 'overview', label: 'Overview', icon: <Dashboard /> },
+      { id: 'company-dashboard', label: 'Company Dashboard', icon: <Business /> },
+      { id: 'ai-reports', label: 'AI Generated Reports', icon: <SmartToy /> },
+      { id: 'external-files', label: 'External Files', icon: <FolderOpen /> },
+      { id: 'internal-research', label: 'Internal Research', icon: <Science /> },
+      { id: 'agents', label: 'Agents', icon: <AndroidIcon /> },
+      { id: 'settings', label: 'Settings', icon: <Settings /> },
+    ];
 
   useEffect(() => {
     let filtered: FileItem[] = [];
@@ -481,16 +484,20 @@ function App() {
                 </>
               )}
               
-              {selectedMenuItem === 'agents' && (
-                <Box sx={{ textAlign: 'center', mt: 8 }}>
-                  <Typography variant="h4" sx={{ mb: 2 }}>
-                    Agents
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Agent management functionality would be implemented here.
-                  </Typography>
-                </Box>
-              )}
+                            {selectedMenuItem === 'company-dashboard' && (
+                              <CompanyDashboard />
+                            )}
+              
+                            {selectedMenuItem === 'agents' && (
+                              <Box sx={{ textAlign: 'center', mt: 8 }}>
+                                <Typography variant="h4" sx={{ mb: 2 }}>
+                                  Agents
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary">
+                                  Agent management functionality would be implemented here.
+                                </Typography>
+                              </Box>
+                            )}
               
               {selectedMenuItem === 'settings' && (
                 <Box sx={{ textAlign: 'center', mt: 8 }}>
