@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -26,6 +26,14 @@ import {
   ListItemText,
   ListItemIcon,
   ListItemAvatar,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  CircularProgress,
+  ToggleButton,
+  ToggleButtonGroup,
+  SelectChangeEvent,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -45,27 +53,38 @@ import {
   Refresh,
   ArrowUpward,
   ArrowDownward,
+  ShowChart,
+  CandlestickChart,
 } from '@mui/icons-material';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+  BarChart,
+  Bar,
+  ReferenceLine,
+} from 'recharts';
+import yahooFinanceService, { StockQuote, HistoricalDataPoint } from '../services/yahooFinance';
 
-const mockCompanyData = {
-  ticker: 'AAPL',
-  name: 'Apple Inc.',
-  sector: 'Technology',
-  industry: 'Consumer Electronics',
-  marketCap: 2.89,
-  price: 178.72,
-  priceChange: 2.34,
-  priceChangePercent: 1.33,
-  volume: '52.3M',
-  avgVolume: '58.2M',
-  peRatio: 28.4,
-  eps: 6.29,
-  dividend: 0.96,
-  dividendYield: 0.54,
-  beta: 1.28,
-  week52High: 199.62,
-  week52Low: 143.90,
-};
+// Synthetic documents data
+const syntheticDocuments = [
+  { id: '1', title: 'Q4 2024 Earnings Call Transcript', source: 'FactSet', type: 'transcript', date: '2024-01-25', sentiment: 0.72, ticker: 'AAPL', content: 'Strong iPhone sales drove revenue growth...' },
+  { id: '2', title: 'Apple: iPhone 16 Cycle Analysis', source: 'AlphaSense', type: 'research', date: '2024-01-24', sentiment: 0.65, ticker: 'AAPL', content: 'The iPhone 16 cycle shows promising early indicators...' },
+  { id: '3', title: 'Management Meeting Notes - Tim Cook', source: 'Internal', type: 'note', date: '2024-01-23', sentiment: 0.58, ticker: 'AAPL', content: 'Key takeaways from the management meeting...' },
+  { id: '4', title: 'Expert Call: Supply Chain Deep Dive', source: 'ThirdBridge', type: 'expert', date: '2024-01-22', sentiment: 0.45, ticker: 'AAPL', content: 'Supply chain expert discusses component availability...' },
+  { id: '5', title: 'Services Revenue Acceleration', source: 'Bloomberg', type: 'research', date: '2024-01-21', sentiment: 0.78, ticker: 'AAPL', content: 'Apple Services segment continues to outperform...' },
+  { id: '6', title: 'China Market Risk Assessment', source: 'Internal', type: 'memo', date: '2024-01-20', sentiment: 0.32, ticker: 'AAPL', content: 'Analysis of regulatory and competitive risks in China...' },
+  { id: '7', title: 'Microsoft Cloud Growth Analysis', source: 'FactSet', type: 'research', date: '2024-01-24', sentiment: 0.81, ticker: 'MSFT', content: 'Azure continues to gain market share...' },
+  { id: '8', title: 'NVIDIA AI Chip Demand Report', source: 'AlphaSense', type: 'research', date: '2024-01-23', sentiment: 0.89, ticker: 'NVDA', content: 'H100 demand remains extremely strong...' },
+  { id: '9', title: 'Google Search Market Share Update', source: 'Bloomberg', type: 'research', date: '2024-01-22', sentiment: 0.52, ticker: 'GOOGL', content: 'Search market share faces pressure from AI alternatives...' },
+  { id: '10', title: 'Amazon AWS Pricing Analysis', source: 'Internal', type: 'note', date: '2024-01-21', sentiment: 0.61, ticker: 'AMZN', content: 'Competitive pricing dynamics in cloud infrastructure...' },
+];
 
 const mockMetrics = [
   { label: 'Revenue (TTM)', value: '$383.3B', change: 2.8, source: 'FactSet' },
@@ -91,29 +110,12 @@ const mockConsensus = {
   revenueEstimateQ2: 85.5,
 };
 
-const mockRecentDocuments = [
-  { id: '1', title: 'Q4 2024 Earnings Call Transcript', source: 'FactSet', type: 'transcript', date: '2024-01-25', sentiment: 0.72 },
-  { id: '2', title: 'Apple: iPhone 16 Cycle Analysis', source: 'AlphaSense', type: 'research', date: '2024-01-24', sentiment: 0.65 },
-  { id: '3', title: 'Management Meeting Notes - Tim Cook', source: 'Internal', type: 'note', date: '2024-01-23', sentiment: 0.58 },
-  { id: '4', title: 'Expert Call: Supply Chain Deep Dive', source: 'ThirdBridge', type: 'expert', date: '2024-01-22', sentiment: 0.45 },
-  { id: '5', title: 'Services Revenue Acceleration', source: 'Bloomberg', type: 'research', date: '2024-01-21', sentiment: 0.78 },
-  { id: '6', title: 'China Market Risk Assessment', source: 'Internal', type: 'memo', date: '2024-01-20', sentiment: 0.32 },
-];
-
 const mockAlerts = [
   { id: '1', type: 'estimate', message: 'Q1 EPS estimate revised up by Goldman Sachs (+$0.05)', severity: 'info', time: '2 hours ago' },
   { id: '2', type: 'sentiment', message: 'Negative tone shift detected in recent analyst reports', severity: 'warning', time: '5 hours ago' },
   { id: '3', type: 'data', message: 'New 10-K filing available', severity: 'info', time: '1 day ago' },
   { id: '4', type: 'price', message: 'Stock crossed above 50-day moving average', severity: 'success', time: '1 day ago' },
   { id: '5', type: 'alternative', message: 'Job postings increased 15% MoM', severity: 'info', time: '2 days ago' },
-];
-
-const mockCompetitors = [
-  { ticker: 'MSFT', name: 'Microsoft', price: 378.91, change: 1.2, marketCap: '2.81T' },
-  { ticker: 'GOOGL', name: 'Alphabet', price: 141.80, change: -0.5, marketCap: '1.78T' },
-  { ticker: 'AMZN', name: 'Amazon', price: 155.20, change: 0.8, marketCap: '1.61T' },
-  { ticker: 'META', name: 'Meta', price: 384.27, change: 2.1, marketCap: '987B' },
-  { ticker: 'NVDA', name: 'NVIDIA', price: 615.27, change: 3.5, marketCap: '1.52T' },
 ];
 
 const mockSentimentHistory = [
@@ -176,64 +178,326 @@ const getDocumentIcon = (type: string) => {
   }
 };
 
+const formatMarketCap = (marketCap: number): string => {
+  if (marketCap >= 1e12) return `$${(marketCap / 1e12).toFixed(2)}T`;
+  if (marketCap >= 1e9) return `$${(marketCap / 1e9).toFixed(2)}B`;
+  if (marketCap >= 1e6) return `$${(marketCap / 1e6).toFixed(2)}M`;
+  return `$${marketCap.toFixed(2)}`;
+};
+
+const formatVolume = (volume: number): string => {
+  if (volume >= 1e6) return `${(volume / 1e6).toFixed(1)}M`;
+  if (volume >= 1e3) return `${(volume / 1e3).toFixed(1)}K`;
+  return volume.toString();
+};
+
 interface CompanyDashboardProps {
   selectedCompany?: string;
   onCompanySelect?: (ticker: string) => void;
 }
 
+type TimeRange = '1D' | '5D' | '1M' | '3M' | '6M' | '1Y' | '5Y';
+
 const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ 
-  selectedCompany = 'AAPL',
+  selectedCompany: initialCompany = 'AAPL',
   onCompanySelect 
 }) => {
+  const [selectedTicker, setSelectedTicker] = useState(initialCompany);
+  const [stockData, setStockData] = useState<StockQuote | null>(null);
+  const [chartData, setChartData] = useState<HistoricalDataPoint[]>([]);
+  const [competitors, setCompetitors] = useState<StockQuote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [timeRange, setTimeRange] = useState<TimeRange>('3M');
   const [tabValue, setTabValue] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [chartType, setChartType] = useState<'line' | 'area'>('area');
+
+  const availableSymbols = yahooFinanceService.getAvailableSymbols();
+
+  // Fetch stock data when ticker changes
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const quote = await yahooFinanceService.getQuote(selectedTicker);
+        setStockData(quote);
+
+        // Fetch competitors
+        const competitorSymbols = availableSymbols.filter(s => s !== selectedTicker).slice(0, 5);
+        const competitorData = await yahooFinanceService.getQuotes(competitorSymbols);
+        setCompetitors(competitorData);
+      } catch (error) {
+        console.error('Error fetching stock data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedTicker]);
+
+  // Fetch chart data when ticker or time range changes
+  useEffect(() => {
+    const fetchChartData = async () => {
+      setChartLoading(true);
+      try {
+        const data = await yahooFinanceService.getHistoricalData(selectedTicker, timeRange);
+        setChartData(data.data);
+      } catch (error) {
+        console.error('Error fetching chart data:', error);
+      } finally {
+        setChartLoading(false);
+      }
+    };
+
+    fetchChartData();
+  }, [selectedTicker, timeRange]);
+
+  const handleTickerChange = (event: SelectChangeEvent<string>) => {
+    const newTicker = event.target.value;
+    setSelectedTicker(newTicker);
+    onCompanySelect?.(newTicker);
+  };
+
+  const handleTimeRangeChange = (_event: React.MouseEvent<HTMLElement>, newRange: TimeRange | null) => {
+    if (newRange) {
+      setTimeRange(newRange);
+    }
+  };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
+  const handleCompanyClick = (ticker: string) => {
+    setSelectedTicker(ticker);
+    onCompanySelect?.(ticker);
+  };
+
+  // Filter documents based on selected ticker and search query
+  const filteredDocuments = syntheticDocuments.filter(doc => {
+    const matchesTicker = doc.ticker === selectedTicker;
+    const matchesSearch = searchQuery === '' || 
+      doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.content.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesTicker && matchesSearch;
+  });
+
+  // Get documents by type for tabs
+  const getDocumentsByType = (type: string | null) => {
+    if (type === null) return filteredDocuments;
+    return filteredDocuments.filter(doc => doc.type === type);
+  };
+
+  // Calculate price change color
+  const priceChangeColor = stockData && stockData.regularMarketChange >= 0 ? '#4caf50' : '#f44336';
+
+  // Format chart data for display
+  const formattedChartData = chartData.map(d => ({
+    ...d,
+    displayDate: timeRange === '1D' 
+      ? new Date(d.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+      : new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+  }));
+
+  // Calculate chart min/max for better visualization
+  const chartMin = chartData.length > 0 ? Math.min(...chartData.map(d => d.low)) * 0.995 : 0;
+  const chartMax = chartData.length > 0 ? Math.max(...chartData.map(d => d.high)) * 1.005 : 0;
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!stockData) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography color="error">Unable to load stock data</Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ p: 3 }}>
       {/* Header Section */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Ticker</InputLabel>
+              <Select
+                value={selectedTicker}
+                label="Ticker"
+                onChange={handleTickerChange}
+              >
+                {availableSymbols.map(symbol => (
+                  <MenuItem key={symbol} value={symbol}>{symbol}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <Typography variant="h4" fontWeight="bold">
-              {mockCompanyData.ticker}
+              {stockData.symbol}
             </Typography>
-            <Chip label={mockCompanyData.sector} size="small" color="primary" variant="outlined" />
+            <Chip label={stockData.sector || 'Technology'} size="small" color="primary" variant="outlined" />
             <IconButton size="small">
               <Star sx={{ color: '#ffc107' }} />
             </IconButton>
           </Box>
           <Typography variant="h6" color="text.secondary">
-            {mockCompanyData.name}
+            {stockData.longName}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {mockCompanyData.industry}
+            {stockData.industry || 'Consumer Electronics'}
           </Typography>
         </Box>
         <Box sx={{ textAlign: 'right' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end' }}>
             <Typography variant="h4" fontWeight="bold">
-              ${mockCompanyData.price.toFixed(2)}
+              ${stockData.regularMarketPrice.toFixed(2)}
             </Typography>
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              color: mockCompanyData.priceChange >= 0 ? '#4caf50' : '#f44336' 
+              color: priceChangeColor
             }}>
-              {mockCompanyData.priceChange >= 0 ? <TrendingUp /> : <TrendingDown />}
+              {stockData.regularMarketChange >= 0 ? <TrendingUp /> : <TrendingDown />}
               <Typography variant="body1" fontWeight="medium">
-                {mockCompanyData.priceChange >= 0 ? '+' : ''}{mockCompanyData.priceChange.toFixed(2)} ({mockCompanyData.priceChangePercent.toFixed(2)}%)
+                {stockData.regularMarketChange >= 0 ? '+' : ''}{stockData.regularMarketChange.toFixed(2)} ({stockData.regularMarketChangePercent.toFixed(2)}%)
               </Typography>
             </Box>
           </Box>
           <Typography variant="body2" color="text.secondary">
-            Market Cap: ${mockCompanyData.marketCap}T | Vol: {mockCompanyData.volume}
+            Market Cap: {formatMarketCap(stockData.marketCap)} | Vol: {formatVolume(stockData.regularMarketVolume)}
           </Typography>
         </Box>
       </Box>
+
+      {/* Stock Price Chart - Google Finance Style */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="h6" fontWeight="bold">
+                Price Chart
+              </Typography>
+              <ToggleButtonGroup
+                value={chartType}
+                exclusive
+                onChange={(_, value) => value && setChartType(value)}
+                size="small"
+              >
+                <ToggleButton value="area">
+                  <ShowChart fontSize="small" />
+                </ToggleButton>
+                <ToggleButton value="line">
+                  <CandlestickChart fontSize="small" />
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+            <ToggleButtonGroup
+              value={timeRange}
+              exclusive
+              onChange={handleTimeRangeChange}
+              size="small"
+            >
+              <ToggleButton value="1D">1D</ToggleButton>
+              <ToggleButton value="5D">5D</ToggleButton>
+              <ToggleButton value="1M">1M</ToggleButton>
+              <ToggleButton value="3M">3M</ToggleButton>
+              <ToggleButton value="6M">6M</ToggleButton>
+              <ToggleButton value="1Y">1Y</ToggleButton>
+              <ToggleButton value="5Y">5Y</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+          
+          {chartLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              {chartType === 'area' ? (
+                <AreaChart data={formattedChartData}>
+                  <defs>
+                    <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={priceChangeColor} stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor={priceChangeColor} stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                  <XAxis 
+                    dataKey="displayDate" 
+                    tick={{ fontSize: 11 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis 
+                    domain={[chartMin, chartMax]}
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(value) => `$${value.toFixed(0)}`}
+                  />
+                  <RechartsTooltip 
+                    formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Price']}
+                    labelFormatter={(label) => `Date: ${label}`}
+                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e0e0e0' }}
+                  />
+                  <ReferenceLine y={stockData.regularMarketPrice - stockData.regularMarketChange} stroke="#999" strokeDasharray="5 5" />
+                  <Area
+                    type="monotone" 
+                    dataKey="close" 
+                    stroke={priceChangeColor}
+                    strokeWidth={2}
+                    fillOpacity={1} 
+                    fill="url(#colorPrice)" 
+                  />
+                </AreaChart>
+              ) : (
+                <LineChart data={formattedChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                  <XAxis 
+                    dataKey="displayDate" 
+                    tick={{ fontSize: 11 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis 
+                    domain={[chartMin, chartMax]}
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(value) => `$${value.toFixed(0)}`}
+                  />
+                  <RechartsTooltip 
+                    formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Price']}
+                    labelFormatter={(label) => `Date: ${label}`}
+                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e0e0e0' }}
+                  />
+                  <ReferenceLine y={stockData.regularMarketPrice - stockData.regularMarketChange} stroke="#999" strokeDasharray="5 5" />
+                  <Line
+                    type="monotone" 
+                    dataKey="close" 
+                    stroke={priceChangeColor}
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              )}
+            </ResponsiveContainer>
+          )}
+
+          {/* Volume Chart */}
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Volume</Typography>
+            <ResponsiveContainer width="100%" height={60}>
+              <BarChart data={formattedChartData}>
+                <XAxis dataKey="displayDate" hide />
+                <YAxis hide />
+                <Bar dataKey="volume" fill="#90caf9" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Box>
+        </CardContent>
+      </Card>
 
       {/* Search Bar */}
       <Box sx={{ mb: 3 }}>
@@ -372,93 +636,27 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
             <CardContent>
               <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                 <Tabs value={tabValue} onChange={handleTabChange}>
-                  <Tab label="All Documents" />
-                  <Tab label="Transcripts" />
-                  <Tab label="Research" />
-                  <Tab label="Internal Notes" />
-                  <Tab label="Expert Calls" />
+                  <Tab label={`All Documents (${getDocumentsByType(null).length})`} />
+                  <Tab label={`Transcripts (${getDocumentsByType('transcript').length})`} />
+                  <Tab label={`Research (${getDocumentsByType('research').length})`} />
+                  <Tab label={`Internal Notes (${getDocumentsByType('note').length + getDocumentsByType('memo').length})`} />
+                  <Tab label={`Expert Calls (${getDocumentsByType('expert').length})`} />
                 </Tabs>
               </Box>
               <TabPanel value={tabValue} index={0}>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Document</TableCell>
-                        <TableCell>Source</TableCell>
-                        <TableCell>Date</TableCell>
-                        <TableCell>Sentiment</TableCell>
-                        <TableCell align="right">Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {mockRecentDocuments.map((doc) => (
-                        <TableRow key={doc.id} hover sx={{ cursor: 'pointer' }}>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              {getDocumentIcon(doc.type)}
-                              <Box>
-                                <Typography variant="body2" fontWeight="medium">
-                                  {doc.title}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {doc.type.charAt(0).toUpperCase() + doc.type.slice(1)}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Chip label={doc.source} size="small" variant="outlined" />
-                          </TableCell>
-                          <TableCell>{doc.date}</TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Box sx={{ 
-                                width: 60, 
-                                height: 6, 
-                                backgroundColor: '#e0e0e0', 
-                                borderRadius: 3,
-                                overflow: 'hidden'
-                              }}>
-                                <Box sx={{ 
-                                  width: `${doc.sentiment * 100}%`, 
-                                  height: '100%', 
-                                  backgroundColor: getSentimentColor(doc.sentiment),
-                                  borderRadius: 3
-                                }} />
-                              </Box>
-                              <Typography variant="caption" sx={{ color: getSentimentColor(doc.sentiment) }}>
-                                {getSentimentLabel(doc.sentiment)}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell align="right">
-                            <IconButton size="small">
-                              <OpenInNew fontSize="small" />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                <Box sx={{ mt: 2, textAlign: 'center' }}>
-                  <Button variant="text" color="primary">
-                    View All Documents
-                  </Button>
-                </Box>
+                <DocumentTable documents={getDocumentsByType(null)} />
               </TabPanel>
               <TabPanel value={tabValue} index={1}>
-                <Typography color="text.secondary">Transcript documents will be displayed here</Typography>
+                <DocumentTable documents={getDocumentsByType('transcript')} />
               </TabPanel>
               <TabPanel value={tabValue} index={2}>
-                <Typography color="text.secondary">Research documents will be displayed here</Typography>
+                <DocumentTable documents={getDocumentsByType('research')} />
               </TabPanel>
               <TabPanel value={tabValue} index={3}>
-                <Typography color="text.secondary">Internal notes will be displayed here</Typography>
+                <DocumentTable documents={[...getDocumentsByType('note'), ...getDocumentsByType('memo')]} />
               </TabPanel>
               <TabPanel value={tabValue} index={4}>
-                <Typography color="text.secondary">Expert call transcripts will be displayed here</Typography>
+                <DocumentTable documents={getDocumentsByType('expert')} />
               </TabPanel>
             </CardContent>
           </Card>
@@ -563,7 +761,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
             </CardContent>
           </Card>
 
-          {/* Competitors */}
+          {/* Competitors - Now with real data */}
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
@@ -579,32 +777,32 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {mockCompetitors.map((comp) => (
+                    {competitors.map((comp) => (
                       <TableRow 
-                        key={comp.ticker} 
+                        key={comp.symbol} 
                         hover 
                         sx={{ cursor: 'pointer' }}
-                        onClick={() => onCompanySelect?.(comp.ticker)}
+                        onClick={() => handleCompanyClick(comp.symbol)}
                       >
                         <TableCell>
                           <Box>
                             <Typography variant="body2" fontWeight="bold">
-                              {comp.ticker}
+                              {comp.symbol}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              {comp.name}
+                              {comp.shortName}
                             </Typography>
                           </Box>
                         </TableCell>
                         <TableCell align="right">
-                          ${comp.price.toFixed(2)}
+                          ${comp.regularMarketPrice.toFixed(2)}
                         </TableCell>
                         <TableCell align="right">
                           <Typography 
                             variant="body2" 
-                            sx={{ color: comp.change >= 0 ? '#4caf50' : '#f44336' }}
+                            sx={{ color: comp.regularMarketChangePercent >= 0 ? '#4caf50' : '#f44336' }}
                           >
-                            {comp.change >= 0 ? '+' : ''}{comp.change}%
+                            {comp.regularMarketChangePercent >= 0 ? '+' : ''}{comp.regularMarketChangePercent.toFixed(2)}%
                           </Typography>
                         </TableCell>
                       </TableRow>
@@ -626,7 +824,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
                   <ListItem 
                     key={company.ticker} 
                     sx={{ px: 0, cursor: 'pointer' }}
-                    onClick={() => onCompanySelect?.(company.ticker)}
+                    onClick={() => handleCompanyClick(company.ticker)}
                   >
                     <ListItemAvatar>
                       <Avatar sx={{ 
@@ -673,6 +871,93 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
         </Box>
       </Box>
     </Box>
+  );
+};
+
+// Document Table Component
+interface DocumentTableProps {
+  documents: typeof syntheticDocuments;
+}
+
+const DocumentTable: React.FC<DocumentTableProps> = ({ documents }) => {
+  if (documents.length === 0) {
+    return (
+      <Box sx={{ textAlign: 'center', py: 4 }}>
+        <Typography color="text.secondary">No documents found</Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Document</TableCell>
+              <TableCell>Source</TableCell>
+              <TableCell>Date</TableCell>
+              <TableCell>Sentiment</TableCell>
+              <TableCell align="right">Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {documents.map((doc) => (
+              <TableRow key={doc.id} hover sx={{ cursor: 'pointer' }}>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {getDocumentIcon(doc.type)}
+                    <Box>
+                      <Typography variant="body2" fontWeight="medium">
+                        {doc.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {doc.type.charAt(0).toUpperCase() + doc.type.slice(1)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Chip label={doc.source} size="small" variant="outlined" />
+                </TableCell>
+                <TableCell>{doc.date}</TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ 
+                      width: 60, 
+                      height: 6, 
+                      backgroundColor: '#e0e0e0', 
+                      borderRadius: 3,
+                      overflow: 'hidden'
+                    }}>
+                      <Box sx={{ 
+                        width: `${doc.sentiment * 100}%`, 
+                        height: '100%', 
+                        backgroundColor: getSentimentColor(doc.sentiment),
+                        borderRadius: 3
+                      }} />
+                    </Box>
+                    <Typography variant="caption" sx={{ color: getSentimentColor(doc.sentiment) }}>
+                      {getSentimentLabel(doc.sentiment)}
+                    </Typography>
+                  </Box>
+                </TableCell>
+                <TableCell align="right">
+                  <IconButton size="small">
+                    <OpenInNew fontSize="small" />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <Box sx={{ mt: 2, textAlign: 'center' }}>
+        <Button variant="text" color="primary">
+          View All Documents
+        </Button>
+      </Box>
+    </>
   );
 };
 
