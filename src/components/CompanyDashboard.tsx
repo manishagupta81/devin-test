@@ -82,6 +82,18 @@ import {
   ComposedChart,
 } from 'recharts';
 import yahooFinanceService, { StockQuote, HistoricalDataPoint } from '../services/yahooFinance';
+import { generateCompanyIntelligence, generateMarketCommentary, generateInvestmentSummary, CompanyIntelligence } from '../services/openaiService';
+
+// Company name mapping for OpenAI prompts
+const companyNames: Record<string, string> = {
+  AAPL: 'Apple Inc.',
+  MSFT: 'Microsoft Corporation',
+  GOOGL: 'Alphabet Inc.',
+  AMZN: 'Amazon.com Inc.',
+  META: 'Meta Platforms Inc.',
+  NVDA: 'NVIDIA Corporation',
+  AMD: 'Advanced Micro Devices Inc.',
+};
 
 // Key Leading Indicators Data
 const keyLeadingIndicators = [
@@ -483,6 +495,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
   const [tabValue, setTabValue] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [chartType, setChartType] = useState<'line' | 'area'>('area');
+  
+  // OpenAI-generated data state
+  const [aiIntelligence, setAiIntelligence] = useState<CompanyIntelligence | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [useAiData, setUseAiData] = useState(false);
 
   const availableSymbols = yahooFinanceService.getAvailableSymbols();
 
@@ -524,6 +542,50 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
 
     fetchChartData();
   }, [selectedTicker, timeRange]);
+
+  // Fetch OpenAI-generated intelligence data
+  const fetchAiIntelligence = async () => {
+    if (!process.env.REACT_APP_OPENAI_API_KEY) {
+      setAiError('OpenAI API key not configured');
+      return;
+    }
+    
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const companyName = companyNames[selectedTicker] || selectedTicker;
+      const intelligence = await generateCompanyIntelligence(selectedTicker, companyName);
+      setAiIntelligence(intelligence);
+      setUseAiData(true);
+    } catch (error) {
+      console.error('Error fetching AI intelligence:', error);
+      setAiError('Failed to generate AI intelligence. Using synthetic data.');
+      setUseAiData(false);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Get the data to display (AI-generated or synthetic)
+  const displaySalesPerEmployee = useAiData && aiIntelligence?.quantitative?.salesPerEmployee 
+    ? aiIntelligence.quantitative.salesPerEmployee 
+    : salesPerEmployee;
+  
+  const displayCashFlowMargins = useAiData && aiIntelligence?.quantitative?.cashFlowMargins 
+    ? aiIntelligence.quantitative.cashFlowMargins 
+    : cashFlowMargins;
+  
+  const displayHistoricalGrowthRate = useAiData && aiIntelligence?.quantitative?.historicalGrowthRate 
+    ? aiIntelligence.quantitative.historicalGrowthRate 
+    : historicalGrowthRate;
+  
+  const displayProfitabilityMargins = useAiData && aiIntelligence?.quantitative?.profitabilityMargins 
+    ? aiIntelligence.quantitative.profitabilityMargins 
+    : profitabilityMargins;
+  
+  const displayEpsHistory = useAiData && aiIntelligence?.quantitative?.epsHistory 
+    ? aiIntelligence.quantitative.epsHistory 
+    : epsHistory;
 
   const handleTickerChange = (event: SelectChangeEvent<string>) => {
     const newTicker = event.target.value;
@@ -1134,9 +1196,104 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
       {/* Quantitative Analysis Section */}
       <Card sx={{ mb: 2 }}>
         <CardContent>
-          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Assessment color="primary" /> Quantitative Analysis
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Assessment color="primary" /> Quantitative Analysis
+              {useAiData && (
+                <Chip 
+                  label="AI Generated" 
+                  size="small" 
+                  color="primary" 
+                  sx={{ ml: 1 }}
+                />
+              )}
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {aiError && (
+                <Typography variant="caption" color="error">{aiError}</Typography>
+              )}
+              <Button
+                variant={useAiData ? "outlined" : "contained"}
+                size="small"
+                onClick={fetchAiIntelligence}
+                disabled={aiLoading}
+                startIcon={aiLoading ? <CircularProgress size={16} /> : <Refresh />}
+              >
+                {aiLoading ? 'Generating...' : useAiData ? 'Refresh AI Data' : 'Generate AI Data'}
+              </Button>
+              {useAiData && (
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => setUseAiData(false)}
+                >
+                  Use Synthetic
+                </Button>
+              )}
+            </Box>
+          </Box>
+
+          {/* AI Qualitative Insights */}
+          {useAiData && aiIntelligence?.qualitative && (
+            <Paper sx={{ p: 2, mb: 2, bgcolor: '#f5f5f5' }}>
+              <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
+                AI-Generated Executive Summary
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                {aiIntelligence.qualitative.executiveSummary}
+              </Typography>
+              
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Typography variant="caption" fontWeight="bold" color="primary">Key Insights</Typography>
+                  <List dense>
+                    {aiIntelligence.qualitative.keyInsights.slice(0, 3).map((insight, idx) => (
+                      <ListItem key={idx} sx={{ py: 0 }}>
+                        <ListItemIcon sx={{ minWidth: 24 }}>
+                          <CheckCircle sx={{ fontSize: 14, color: '#4caf50' }} />
+                        </ListItemIcon>
+                        <ListItemText primary={<Typography variant="caption">{insight}</Typography>} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Typography variant="caption" fontWeight="bold" color="error">Risk Factors</Typography>
+                  <List dense>
+                    {aiIntelligence.qualitative.riskFactors.slice(0, 3).map((risk, idx) => (
+                      <ListItem key={idx} sx={{ py: 0 }}>
+                        <ListItemIcon sx={{ minWidth: 24 }}>
+                          <Warning sx={{ fontSize: 14, color: '#f44336' }} />
+                        </ListItemIcon>
+                        <ListItemText primary={<Typography variant="caption">{risk}</Typography>} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Typography variant="caption" fontWeight="bold" sx={{ color: '#1976d2' }}>Opportunities</Typography>
+                  <List dense>
+                    {aiIntelligence.qualitative.opportunities.slice(0, 3).map((opp, idx) => (
+                      <ListItem key={idx} sx={{ py: 0 }}>
+                        <ListItemIcon sx={{ minWidth: 24 }}>
+                          <TrendingUp sx={{ fontSize: 14, color: '#1976d2' }} />
+                        </ListItemIcon>
+                        <ListItemText primary={<Typography variant="caption">{opp}</Typography>} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Grid>
+              </Grid>
+              
+              <Divider sx={{ my: 1 }} />
+              <Typography variant="caption" color="text.secondary">
+                Investment Thesis: {aiIntelligence.qualitative.investmentThesis}
+              </Typography>
+              <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
+                Generated at: {new Date(aiIntelligence.generatedAt).toLocaleString()}
+              </Typography>
+            </Paper>
+          )}
           
           <Grid container spacing={2}>
             {/* Sales per Employee */}
@@ -1145,7 +1302,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Sales per Employee ($M)</Typography>
                 <Typography variant="caption" color="text.secondary">Historical trend showing revenue efficiency</Typography>
                 <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={salesPerEmployee}>
+                  <BarChart data={displaySalesPerEmployee}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="year" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 10 }} domain={[0, 3.5]} tickFormatter={(v) => `$${v}M`} />
@@ -1166,7 +1323,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Cash Flow Margins (%)</Typography>
                 <Typography variant="caption" color="text.secondary">Operating CF vs Free Cash Flow Margin</Typography>
                 <ResponsiveContainer width="100%" height={180}>
-                  <LineChart data={cashFlowMargins}>
+                  <LineChart data={displayCashFlowMargins}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="year" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 10 }} domain={[15, 35]} tickFormatter={(v) => `${v}%`} />
@@ -1189,7 +1346,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Historical Annual Growth Rate (%)</Typography>
                 <Typography variant="caption" color="text.secondary">Revenue, Earnings, and EPS Growth</Typography>
                 <ResponsiveContainer width="100%" height={180}>
-                  <ComposedChart data={historicalGrowthRate}>
+                  <ComposedChart data={displayHistoricalGrowthRate}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="year" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} />
@@ -1213,7 +1370,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Profitability Margins (%)</Typography>
                 <Typography variant="caption" color="text.secondary">EBITDA, EBIT, and Net Margin</Typography>
                 <ResponsiveContainer width="100%" height={180}>
-                  <AreaChart data={profitabilityMargins}>
+                  <AreaChart data={displayProfitabilityMargins}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="year" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 10 }} domain={[15, 45]} tickFormatter={(v) => `${v}%`} />
@@ -1237,7 +1394,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>EPS History & Growth</Typography>
                 <Typography variant="caption" color="text.secondary">Earnings Per Share with YoY Growth Rate</Typography>
                 <ResponsiveContainer width="100%" height={200}>
-                  <ComposedChart data={epsHistory}>
+                  <ComposedChart data={displayEpsHistory}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="year" tick={{ fontSize: 10 }} />
                     <YAxis yAxisId="left" tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v}`} />
