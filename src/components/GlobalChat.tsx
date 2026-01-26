@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Box,
   Drawer,
@@ -13,14 +13,19 @@ import {
   List,
   ListItem,
   ListItemText,
+  Badge,
+  Tooltip,
 } from '@mui/material';
 import {
   Chat,
   Close,
   Send,
   SmartToy,
+  AutoAwesome,
 } from '@mui/icons-material';
 import { FileItem } from '../types';
+import SmartContextBar from './SmartContextBar';
+import SmartQueryDrawer from './SmartQueryDrawer';
 
 interface Message {
   id: string;
@@ -33,6 +38,7 @@ interface Message {
 
 interface GlobalChatProps {
   files: FileItem[];
+  availableTickers?: string[];
 }
 
 const conversationStarters = [
@@ -74,10 +80,13 @@ const conversationStarters = [
   },
 ];
 
-const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
+const GlobalChat: React.FC<GlobalChatProps> = ({ files, availableTickers = [] }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
+  const [selectedTickers, setSelectedTickers] = useState<string[]>([]);
+  const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
+  const [smartDrawerOpen, setSmartDrawerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -87,6 +96,30 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const handleKeyboardShortcut = useCallback((e: KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      if (isOpen) {
+        setSmartDrawerOpen(prev => !prev);
+      }
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyboardShortcut);
+    return () => window.removeEventListener('keydown', handleKeyboardShortcut);
+  }, [handleKeyboardShortcut]);
+
+  const handleSmartQuerySelect = (query: string) => {
+    setInputValue(query);
+    setSmartDrawerOpen(false);
+  };
+
+  const allAvailableTickers = Array.from(new Set([
+    ...availableTickers,
+    ...files.map(f => f.ticker).filter(Boolean) as string[],
+  ]));
 
   const logAnalytics = (action: string, data?: any) => {
     const analyticsEvent = {
@@ -284,7 +317,7 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
         >
           <Box
             sx={{
-              p: 2.5,
+              p: 2,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -306,10 +339,34 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
                 </Typography>
               </Box>
             </Box>
-            <IconButton onClick={handleClose} sx={{ color: 'white' }}>
-              <Close />
-            </IconButton>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Tooltip title="SMART Queries (Ctrl+K)">
+                <IconButton 
+                  onClick={() => setSmartDrawerOpen(true)} 
+                  sx={{ color: 'white' }}
+                >
+                  <Badge 
+                    badgeContent={selectedTickers.length + selectedSectors.length} 
+                    color="secondary"
+                    max={9}
+                  >
+                    <AutoAwesome />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
+              <IconButton onClick={handleClose} sx={{ color: 'white' }}>
+                <Close />
+              </IconButton>
+            </Box>
           </Box>
+
+          <SmartContextBar
+            selectedTickers={selectedTickers}
+            selectedSectors={selectedSectors}
+            onTickersChange={setSelectedTickers}
+            onSectorsChange={setSelectedSectors}
+            availableTickers={allAvailableTickers}
+          />
 
           {messages.length === 0 ? (
             <Box sx={{ p: 3, flex: 1, overflow: 'auto' }}>
@@ -513,6 +570,14 @@ const GlobalChat: React.FC<GlobalChatProps> = ({ files }) => {
           </Box>
         </Box>
       </Drawer>
+
+      <SmartQueryDrawer
+        open={smartDrawerOpen}
+        onClose={() => setSmartDrawerOpen(false)}
+        onQuerySelect={handleSmartQuerySelect}
+        selectedTickers={selectedTickers}
+        selectedSectors={selectedSectors}
+      />
     </>
   );
 };

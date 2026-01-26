@@ -513,7 +513,7 @@ function App() {
           )}
         </Box>
 
-        <GlobalChat files={files} />
+        <GlobalChat files={files} availableTickers={getAvailableTickers()} />
       </Box>
     </ThemeProvider>
   );
