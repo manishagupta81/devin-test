@@ -29,43 +29,242 @@ The PRISM chat feature is built using the AG-UI (Agent-User Interaction) protoco
 
 ## Architecture Diagram
 
+### High-Level System Architecture
+
 ```
-+-----------------------------------------------------------------------------+
-|                              PRISM Dashboard                                 |
-|  +---------------------------------------------------------------------+    |
-|  |                         React Frontend                               |    |
-|  |  +-----------------+  +-----------------+  +---------------------+   |    |
-|  |  |   App.tsx       |  | CompanyDashboard|  |   CopilotChat.tsx   |   |    |
-|  |  | (CopilotKit     |  | (Dashboard UI)  |  | (Chat Interface)    |   |    |
-|  |  |  Provider)      |  |                 |  |                     |   |    |
-|  |  +--------+--------+  +--------+--------+  +----------+----------+   |    |
-|  |           |                    |                      |              |    |
-|  |           +--------------------+----------------------+              |    |
-|  |                                |                                     |    |
-|  |                    DashboardStateContext                             |    |
-|  |                    (selectedTicker, setSelectedTicker)               |    |
-|  +---------------------------------------------------------------------+    |
-|                                   |                                          |
-|                                   | HTTPS (AG-UI Protocol)                   |
-|                                   v                                          |
-|  +---------------------------------------------------------------------+    |
-|  |                    FastAPI Backend (Fly.io)                          |    |
-|  |  +---------------------------------------------------------------+   |    |
-|  |  |              CopilotKit Remote Endpoint                        |   |    |
-|  |  |  +-------------+  +-------------+  +---------------------+     |   |    |
-|  |  |  |getStockInfo |  |analyzeCompany|  | compareCompanies   |     |   |    |
-|  |  |  |   Action    |  |   Action     |  |     Action         |     |   |    |
-|  |  |  +-------------+  +-------------+  +---------------------+     |   |    |
-|  |  +---------------------------------------------------------------+   |    |
-|  +---------------------------------------------------------------------+    |
-|                                   |                                          |
-|                                   | API Calls                                |
-|                                   v                                          |
-|  +---------------------------------------------------------------------+    |
-|  |                         OpenAI API                                   |    |
-|  |                    (GPT-4o for LLM responses)                        |    |
-|  +---------------------------------------------------------------------+    |
-+-----------------------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    PRISM DASHBOARD                                       │
+│                                                                                          │
+│  ┌────────────────────────────────────────────────────────────────────────────────────┐ │
+│  │                              FRONTEND (React + TypeScript)                          │ │
+│  │                    URL: https://equity-intelligence-app-t4ajy40b.devinapps.com     │ │
+│  │                                                                                     │ │
+│  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────────────────┐  │ │
+│  │  │     App.tsx      │  │ CompanyDashboard │  │        CopilotChat.tsx           │  │ │
+│  │  │                  │  │                  │  │                                  │  │ │
+│  │  │ • CopilotKit     │  │ • Stock Charts   │  │ • Chat Toggle Button             │  │ │
+│  │  │   Provider       │  │ • Key Metrics    │  │ • Message History                │  │ │
+│  │  │ • Runtime URL    │  │ • Sentiment      │  │ • Suggestion Chips               │  │ │
+│  │  │   Config         │  │ • Competitors    │  │ • HITL Approval Dialog           │  │ │
+│  │  │                  │  │                  │  │ • Input Field                    │  │ │
+│  │  └────────┬─────────┘  └────────┬─────────┘  └────────────────┬─────────────────┘  │ │
+│  │           │                     │                              │                    │ │
+│  │           └─────────────────────┼──────────────────────────────┘                    │ │
+│  │                                 │                                                   │ │
+│  │                    ┌────────────▼────────────┐                                      │ │
+│  │                    │  DashboardStateContext  │                                      │ │
+│  │                    │  • selectedTicker       │                                      │ │
+│  │                    │  • setSelectedTicker    │                                      │ │
+│  │                    │  • availableCompanies   │                                      │ │
+│  │                    └────────────┬────────────┘                                      │ │
+│  └─────────────────────────────────┼──────────────────────────────────────────────────┘ │
+│                                    │                                                     │
+│                                    │ HTTPS (AG-UI Protocol / Server-Sent Events)        │
+│                                    ▼                                                     │
+│  ┌────────────────────────────────────────────────────────────────────────────────────┐ │
+│  │                           BACKEND (FastAPI + Python)                                │ │
+│  │                         URL: https://app-iuirfrrz.fly.dev                          │ │
+│  │                         Hosted on: Fly.io                                          │ │
+│  │                                                                                     │ │
+│  │  ┌──────────────────────────────────────────────────────────────────────────────┐  │ │
+│  │  │                     CopilotKit Remote Endpoint (/copilotkit)                  │  │ │
+│  │  │                                                                               │  │ │
+│  │  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐   │  │ │
+│  │  │  │  getStockInfo   │  │ analyzeCompany  │  │    compareCompanies         │   │  │ │
+│  │  │  │     Action      │  │     Action      │  │        Action               │   │  │ │
+│  │  │  │                 │  │                 │  │                             │   │  │ │
+│  │  │  │ Returns stock   │  │ Generates AI    │  │ Compares two companies      │   │  │ │
+│  │  │  │ ticker info     │  │ analysis        │  │ side by side                │   │  │ │
+│  │  │  └─────────────────┘  └─────────────────┘  └─────────────────────────────┘   │  │ │
+│  │  └──────────────────────────────────────────────────────────────────────────────┘  │ │
+│  │                                                                                     │ │
+│  │  ┌──────────────────────────────────────────────────────────────────────────────┐  │ │
+│  │  │                           Environment Variables                               │  │ │
+│  │  │                                                                               │  │ │
+│  │  │  OPENAI_API_KEY = sk-***  (Configured as Fly.io Secret)                      │  │ │
+│  │  │                                                                               │  │ │
+│  │  └──────────────────────────────────────────────────────────────────────────────┘  │ │
+│  └────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                    │                                                     │
+│                                    │ HTTPS API Calls                                     │
+│                                    ▼                                                     │
+│  ┌────────────────────────────────────────────────────────────────────────────────────┐ │
+│  │                              OPENAI API                                             │ │
+│  │                       URL: https://api.openai.com/v1                               │ │
+│  │                                                                                     │ │
+│  │  ┌──────────────────────────────────────────────────────────────────────────────┐  │ │
+│  │  │                           GPT-4o Model                                        │  │ │
+│  │  │                                                                               │  │ │
+│  │  │  • Chat Completions API                                                       │  │ │
+│  │  │  • Streaming Responses                                                        │  │ │
+│  │  │  • Function/Tool Calling                                                      │  │ │
+│  │  │                                                                               │  │ │
+│  │  └──────────────────────────────────────────────────────────────────────────────┘  │ │
+│  └────────────────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Data Flow Diagram
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│    User     │     │   Frontend  │     │   Backend   │     │  OpenAI API │
+│  (Browser)  │     │   (React)   │     │  (FastAPI)  │     │   (GPT-4o)  │
+└──────┬──────┘     └──────┬──────┘     └──────┬──────┘     └──────┬──────┘
+       │                   │                   │                   │
+       │  1. Click Chat    │                   │                   │
+       │   Button/Chip     │                   │                   │
+       │──────────────────>│                   │                   │
+       │                   │                   │                   │
+       │                   │  2. POST /copilotkit                  │
+       │                   │   (AG-UI Protocol)│                   │
+       │                   │──────────────────>│                   │
+       │                   │                   │                   │
+       │                   │                   │  3. Chat Completion│
+       │                   │                   │   Request          │
+       │                   │                   │──────────────────>│
+       │                   │                   │                   │
+       │                   │                   │  4. Streaming      │
+       │                   │                   │   Response (SSE)   │
+       │                   │                   │<──────────────────│
+       │                   │                   │                   │
+       │                   │  5. SSE Events    │                   │
+       │                   │   (TextMessage,   │                   │
+       │                   │    ToolCall, etc) │                   │
+       │                   │<──────────────────│                   │
+       │                   │                   │                   │
+       │  6. Display       │                   │                   │
+       │   Response        │                   │                   │
+       │<──────────────────│                   │                   │
+       │                   │                   │                   │
+```
+
+### Component Interaction Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            CopilotChat.tsx                                   │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                         State Management                             │    │
+│  │                                                                      │    │
+│  │  isOpen: boolean          - Controls chat panel visibility           │    │
+│  │  messages: ChatMessage[]  - Stores conversation history              │    │
+│  │  inputValue: string       - Current user input                       │    │
+│  │  isLoading: boolean       - Shows loading indicator                  │    │
+│  │  approvalDialog: {        - HITL approval state                      │    │
+│  │    open: boolean                                                     │    │
+│  │    title: string                                                     │    │
+│  │    description: string                                               │    │
+│  │    pendingQuery: string   - Query to send after approval             │    │
+│  │  }                                                                   │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                         User Interactions                            │    │
+│  │                                                                      │    │
+│  │  handleSuggestionClick(query, requiresApproval)                      │    │
+│  │    │                                                                 │    │
+│  │    ├── requiresApproval = true  ──> Open Approval Dialog             │    │
+│  │    │                                                                 │    │
+│  │    └── requiresApproval = false ──> sendMessage(query)               │    │
+│  │                                                                      │    │
+│  │  handleApprove()                                                     │    │
+│  │    │                                                                 │    │
+│  │    └── sendMessage(approvalDialog.pendingQuery)                      │    │
+│  │                                                                      │    │
+│  │  handleReject()                                                      │    │
+│  │    │                                                                 │    │
+│  │    └── Close dialog, do nothing                                      │    │
+│  │                                                                      │    │
+│  │  sendMessage(query)                                                  │    │
+│  │    │                                                                 │    │
+│  │    ├── Add user message to messages[]                                │    │
+│  │    ├── Set isLoading = true                                          │    │
+│  │    ├── Generate mock response (demo mode)                            │    │
+│  │    └── Add assistant message to messages[]                           │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                         UI Components                                │    │
+│  │                                                                      │    │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐  │    │
+│  │  │  Chat Toggle    │  │  Chat Panel     │  │  Approval Dialog    │  │    │
+│  │  │  Button         │  │                 │  │                     │  │    │
+│  │  │                 │  │  • Header       │  │  • Title            │  │    │
+│  │  │  Visible when   │  │  • Messages     │  │  • Description      │  │    │
+│  │  │  isOpen=false   │  │  • Chips        │  │  • Approve Button   │  │    │
+│  │  │                 │  │  • Input        │  │  • Reject Button    │  │    │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────────┘  │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Suggestion Chips Configuration
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         Suggestion Chips                                     │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  Chip                    │ Query                    │ Requires HITL │    │
+│  ├─────────────────────────────────────────────────────────────────────┤    │
+│  │  Analyze {TICKER}        │ "Analyze {TICKER}..."    │     No        │    │
+│  │  Compare competitors     │ "Compare {TICKER}..."    │     YES       │    │
+│  │  Show risk factors       │ "What are the key..."    │     No        │    │
+│  │  Investment thesis       │ "Generate investment..." │     YES       │    │
+│  │  Market outlook          │ "What's the market..."   │     No        │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│  Note: Chips requiring HITL (Human-in-the-Loop) will show an approval       │
+│  dialog before sending the query to the AI assistant.                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### API Key Configuration Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      API Key Configuration                                   │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                    Step 1: Set Secret on Fly.io                      │    │
+│  │                                                                      │    │
+│  │    $ fly secrets set OPENAI_API_KEY=sk-xxx --app app-iuirfrrz       │    │
+│  │                                                                      │    │
+│  │    OR via Fly.io Dashboard:                                          │    │
+│  │    https://fly.io/apps/app-iuirfrrz → Secrets → Add Secret          │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                    │                                         │
+│                                    ▼                                         │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                    Step 2: Backend Reads Secret                      │    │
+│  │                                                                      │    │
+│  │    # copilot-backend/app/main.py                                    │    │
+│  │    import os                                                         │    │
+│  │    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")                     │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                    │                                         │
+│                                    ▼                                         │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                    Step 3: CopilotKit Uses Key                       │    │
+│  │                                                                      │    │
+│  │    sdk = CopilotKitRemoteEndpoint(                                  │    │
+│  │        actions=[...],                                                │    │
+│  │        # Key is automatically used by CopilotKit SDK                │    │
+│  │    )                                                                 │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                    │                                         │
+│                                    ▼                                         │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                    Step 4: Verify Configuration                      │    │
+│  │                                                                      │    │
+│  │    $ curl https://app-iuirfrrz.fly.dev/healthz                      │    │
+│  │    {"status":"ok"}                                                   │    │
+│  │                                                                      │    │
+│  │    Then test chat in the frontend to verify full functionality      │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Technology Stack
