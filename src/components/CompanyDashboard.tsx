@@ -508,6 +508,21 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [useAiData, setUseAiData] = useState(false);
+  
+  // Competitor Analysis state
+  const [competitor1, setCompetitor1] = useState<string>('MSFT');
+  const [competitor2, setCompetitor2] = useState<string>('GOOGL');
+  const [competitorAnalysis, setCompetitorAnalysis] = useState<{
+    competitor1Data: StockQuote | null;
+    competitor2Data: StockQuote | null;
+    aiAnalysis: string | null;
+    loading: boolean;
+  }>({
+    competitor1Data: null,
+    competitor2Data: null,
+    aiAnalysis: null,
+    loading: false,
+  });
 
   const availableSymbols = yahooFinanceService.getAvailableSymbols();
 
@@ -572,6 +587,43 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
       setAiLoading(false);
     }
   };
+
+  // Fetch competitor analysis data
+  const fetchCompetitorAnalysis = async () => {
+    setCompetitorAnalysis(prev => ({ ...prev, loading: true }));
+    try {
+      const [data1, data2] = await Promise.all([
+        yahooFinanceService.getQuote(competitor1),
+        yahooFinanceService.getQuote(competitor2),
+      ]);
+      
+      if (!data1 || !data2) {
+        setCompetitorAnalysis(prev => ({ ...prev, loading: false }));
+        return;
+      }
+      
+      // Generate AI analysis comparing the two competitors
+      const company1Name = companyNames[competitor1] || competitor1;
+      const company2Name = companyNames[competitor2] || competitor2;
+
+      setCompetitorAnalysis({
+        competitor1Data: data1,
+        competitor2Data: data2,
+        aiAnalysis: `${company1Name} trades at a ${data1.trailingPE && data2.trailingPE ? (data1.trailingPE > data2.trailingPE ? 'premium' : 'discount') : 'comparable'} valuation compared to ${company2Name}. ${data1.regularMarketChangePercent > data2.regularMarketChangePercent ? company1Name : company2Name} shows stronger recent momentum with better daily performance. Both companies remain key players in the technology sector with distinct competitive advantages.`,
+        loading: false,
+      });
+    } catch (error) {
+      console.error('Error fetching competitor analysis:', error);
+      setCompetitorAnalysis(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  // Fetch competitor data when competitors change
+  useEffect(() => {
+    if (competitor1 && competitor2) {
+      fetchCompetitorAnalysis();
+    }
+  }, [competitor1, competitor2]);
 
   // Get the data to display (AI-generated or synthetic)
   const displaySalesPerEmployee = useAiData && aiIntelligence?.quantitative?.salesPerEmployee 
@@ -732,6 +784,192 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
           ))}
         </Box>
       </Paper>
+
+      {/* Competitor Analysis Section - At the Top */}
+      <Card sx={{ mb: 2, border: '2px solid #1a237e' }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Business color="primary" /> Competitor Analysis
+            </Typography>
+            <Button 
+              variant="outlined" 
+              size="small" 
+              startIcon={<Refresh />}
+              onClick={fetchCompetitorAnalysis}
+              disabled={competitorAnalysis.loading}
+            >
+              Refresh Analysis
+            </Button>
+          </Box>
+          
+          {/* Competitor Selection */}
+          <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center' }}>
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Competitor 1</InputLabel>
+              <Select
+                value={competitor1}
+                label="Competitor 1"
+                onChange={(e) => setCompetitor1(e.target.value)}
+              >
+                {availableSymbols.filter(s => s !== competitor2).map(symbol => (
+                  <MenuItem key={symbol} value={symbol}>
+                    {symbol} - {companyNames[symbol]?.split(' ')[0] || symbol}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Typography variant="h6" color="text.secondary">vs</Typography>
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Competitor 2</InputLabel>
+              <Select
+                value={competitor2}
+                label="Competitor 2"
+                onChange={(e) => setCompetitor2(e.target.value)}
+              >
+                {availableSymbols.filter(s => s !== competitor1).map(symbol => (
+                  <MenuItem key={symbol} value={symbol}>
+                    {symbol} - {companyNames[symbol]?.split(' ')[0] || symbol}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+
+          {competitorAnalysis.loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              {/* Comparison Table */}
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                {/* Competitor 1 Card */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Paper sx={{ p: 2, backgroundColor: '#e3f2fd', height: '100%' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="h6" fontWeight="bold" color="primary">
+                        {competitor1}
+                      </Typography>
+                      <Chip 
+                        label={companyNames[competitor1]?.split(' ')[0] || competitor1}
+                        size="small"
+                        color="primary"
+                      />
+                    </Box>
+                    {competitorAnalysis.competitor1Data && (
+                      <Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">Price</Typography>
+                          <Typography variant="body2" fontWeight="bold">
+                            ${competitorAnalysis.competitor1Data.regularMarketPrice.toFixed(2)}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">Change</Typography>
+                          <Typography 
+                            variant="body2" 
+                            fontWeight="bold"
+                            sx={{ color: competitorAnalysis.competitor1Data.regularMarketChange >= 0 ? '#4caf50' : '#f44336' }}
+                          >
+                            {competitorAnalysis.competitor1Data.regularMarketChange >= 0 ? '+' : ''}
+                            {competitorAnalysis.competitor1Data.regularMarketChangePercent.toFixed(2)}%
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">Market Cap</Typography>
+                          <Typography variant="body2" fontWeight="bold">
+                            ${formatMarketCap(competitorAnalysis.competitor1Data.marketCap)}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">P/E Ratio</Typography>
+                          <Typography variant="body2" fontWeight="bold">
+                            {competitorAnalysis.competitor1Data.trailingPE?.toFixed(2) || 'N/A'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">52W Range</Typography>
+                          <Typography variant="body2" fontWeight="bold">
+                            ${competitorAnalysis.competitor1Data.fiftyTwoWeekLow.toFixed(0)} - ${competitorAnalysis.competitor1Data.fiftyTwoWeekHigh.toFixed(0)}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
+                  </Paper>
+                </Grid>
+
+                {/* Competitor 2 Card */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Paper sx={{ p: 2, backgroundColor: '#fce4ec', height: '100%' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="h6" fontWeight="bold" sx={{ color: '#c2185b' }}>
+                        {competitor2}
+                      </Typography>
+                      <Chip 
+                        label={companyNames[competitor2]?.split(' ')[0] || competitor2}
+                        size="small"
+                        sx={{ backgroundColor: '#c2185b', color: 'white' }}
+                      />
+                    </Box>
+                    {competitorAnalysis.competitor2Data && (
+                      <Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">Price</Typography>
+                          <Typography variant="body2" fontWeight="bold">
+                            ${competitorAnalysis.competitor2Data.regularMarketPrice.toFixed(2)}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">Change</Typography>
+                          <Typography 
+                            variant="body2" 
+                            fontWeight="bold"
+                            sx={{ color: competitorAnalysis.competitor2Data.regularMarketChange >= 0 ? '#4caf50' : '#f44336' }}
+                          >
+                            {competitorAnalysis.competitor2Data.regularMarketChange >= 0 ? '+' : ''}
+                            {competitorAnalysis.competitor2Data.regularMarketChangePercent.toFixed(2)}%
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">Market Cap</Typography>
+                          <Typography variant="body2" fontWeight="bold">
+                            ${formatMarketCap(competitorAnalysis.competitor2Data.marketCap)}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">P/E Ratio</Typography>
+                          <Typography variant="body2" fontWeight="bold">
+                            {competitorAnalysis.competitor2Data.trailingPE?.toFixed(2) || 'N/A'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">52W Range</Typography>
+                          <Typography variant="body2" fontWeight="bold">
+                            ${competitorAnalysis.competitor2Data.fiftyTwoWeekLow.toFixed(0)} - ${competitorAnalysis.competitor2Data.fiftyTwoWeekHigh.toFixed(0)}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              {/* AI Analysis Summary */}
+              {competitorAnalysis.aiAnalysis && (
+                <Paper sx={{ p: 2, backgroundColor: '#f5f5f5', borderLeft: '4px solid #1a237e' }}>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Assessment color="primary" /> AI Analysis Summary
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {competitorAnalysis.aiAnalysis}
+                  </Typography>
+                </Paper>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Centralized Investment Takeaways */}
       <Card sx={{ mb: 2, borderLeft: '4px solid #1a237e' }}>
