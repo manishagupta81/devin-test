@@ -40,12 +40,8 @@ const drawerWidth = 280;
 
 // Get the runtime URL based on environment
 const getRuntimeUrl = () => {
-  // In production, use the deployed backend URL
-  if (process.env.NODE_ENV === 'production') {
-    return process.env.REACT_APP_COPILOT_RUNTIME_URL || '/api/copilotkit';
-  }
-  // In development, use local server
-  return 'http://localhost:4000/api/copilotkit';
+  // Use the deployed FastAPI backend on Fly.io
+  return 'https://app-iuirfrrz.fly.dev/copilotkit';
 };
 
 // Context for sharing dashboard state with CopilotKit
