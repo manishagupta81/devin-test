@@ -12,6 +12,10 @@ import {
   Paper,
   TextField,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   CheckCircle,
@@ -176,6 +180,11 @@ const CopilotChat: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // State for competitor selection in compare action
+  const [compareDialogOpen, setCompareDialogOpen] = useState(false);
+  const [selectedCompetitor1, setSelectedCompetitor1] = useState('MSFT');
+  const [selectedCompetitor2, setSelectedCompetitor2] = useState('GOOGL');
 
   // State for human-in-the-loop approval
   const [approvalDialog, setApprovalDialog] = useState<{
@@ -283,6 +292,12 @@ const CopilotChat: React.FC = () => {
 
   // Handle suggestion chip click
   const handleSuggestionClick = (query: string, requiresApproval: boolean) => {
+    // Check if this is a compare competitors request
+    if (query.toLowerCase().includes('compare') && query.toLowerCase().includes('competitor')) {
+      setCompareDialogOpen(true);
+      return;
+    }
+    
     if (requiresApproval) {
       setApprovalDialog({
         open: true,
@@ -293,6 +308,36 @@ const CopilotChat: React.FC = () => {
     } else {
       sendMessage(query);
     }
+  };
+
+  // Handle compare competitors action
+  const handleCompareApprove = () => {
+    setCompareDialogOpen(false);
+    
+    // Update the dashboard with the selected competitors
+    if (dashboardContext?.setCompetitors) {
+      dashboardContext.setCompetitors(selectedCompetitor1, selectedCompetitor2);
+    }
+    
+    // Add user message
+    const userMessage: ChatMessage = { 
+      role: 'user', 
+      content: `Compare ${companyNames[selectedCompetitor1] || selectedCompetitor1} vs ${companyNames[selectedCompetitor2] || selectedCompetitor2}` 
+    };
+    setMessages(prev => [...prev, userMessage]);
+    
+    // Add assistant response indicating dashboard was updated
+    setTimeout(() => {
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: `I've updated the **Competitor Analysis** section on the dashboard to compare **${companyNames[selectedCompetitor1] || selectedCompetitor1}** vs **${companyNames[selectedCompetitor2] || selectedCompetitor2}**.\n\nYou can see the side-by-side comparison with:\n- Stock prices and daily changes\n- Market capitalization\n- P/E ratios\n- 52-week ranges\n- AI-generated analysis summary\n\nScroll to the top of the dashboard to view the comparison.`,
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+    }, 500);
+  };
+
+  const handleCompareReject = () => {
+    setCompareDialogOpen(false);
   };
 
   // Handle form submit
@@ -489,6 +534,68 @@ const CopilotChat: React.FC = () => {
         onApprove={handleApprove}
         onReject={handleReject}
       />
+
+      {/* Compare Competitors Dialog */}
+      <Dialog open={compareDialogOpen} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Compare color="primary" />
+          Compare Competitors
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Select two competitors to compare. The dashboard will be updated with a side-by-side analysis.
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Competitor 1</InputLabel>
+              <Select
+                value={selectedCompetitor1}
+                label="Competitor 1"
+                onChange={(e) => setSelectedCompetitor1(e.target.value as string)}
+              >
+                {availableTickers.filter(t => t !== selectedCompetitor2).map(ticker => (
+                  <MenuItem key={ticker} value={ticker}>
+                    {ticker} - {companyNames[ticker]?.split(' ')[0] || ticker}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Typography variant="h6" color="text.secondary">vs</Typography>
+            <FormControl fullWidth size="small">
+              <InputLabel>Competitor 2</InputLabel>
+              <Select
+                value={selectedCompetitor2}
+                label="Competitor 2"
+                onChange={(e) => setSelectedCompetitor2(e.target.value as string)}
+              >
+                {availableTickers.filter(t => t !== selectedCompetitor1).map(ticker => (
+                  <MenuItem key={ticker} value={ticker}>
+                    {ticker} - {companyNames[ticker]?.split(' ')[0] || ticker}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCompareReject}
+            startIcon={<Cancel />}
+            color="error"
+            variant="outlined"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCompareApprove}
+            startIcon={<CheckCircle />}
+            color="success"
+            variant="contained"
+          >
+            Compare & Update Dashboard
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

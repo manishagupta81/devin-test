@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { DashboardStateContext } from '../App';
 import {
   Box,
   Card,
@@ -485,6 +486,9 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
   selectedCompany = 'AAPL',
   onCompanySelect 
 }) => {
+  // Get context for chat-driven competitor analysis
+  const dashboardContext = useContext(DashboardStateContext);
+  
   const [selectedTicker, setSelectedTicker] = useState(selectedCompany);
   
   // Sync with parent's selectedCompany prop when it changes
@@ -509,9 +513,10 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
   const [aiError, setAiError] = useState<string | null>(null);
   const [useAiData, setUseAiData] = useState(false);
   
-  // Competitor Analysis state
-  const [competitor1, setCompetitor1] = useState<string>('MSFT');
-  const [competitor2, setCompetitor2] = useState<string>('GOOGL');
+  // Competitor Analysis state - use context values if available (from chat)
+  const [competitor1, setCompetitor1] = useState<string>(dashboardContext?.competitor1 || 'MSFT');
+  const [competitor2, setCompetitor2] = useState<string>(dashboardContext?.competitor2 || 'GOOGL');
+  const [showCompetitorSection, setShowCompetitorSection] = useState<boolean>(dashboardContext?.showCompetitorAnalysis || false);
   const [competitorAnalysis, setCompetitorAnalysis] = useState<{
     competitor1Data: StockQuote | null;
     competitor2Data: StockQuote | null;
@@ -523,6 +528,28 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
     aiAnalysis: null,
     loading: false,
   });
+  
+  // Sync competitor state with context (when chat updates competitors)
+  useEffect(() => {
+    if (dashboardContext?.competitor1 && dashboardContext?.competitor2) {
+      setCompetitor1(dashboardContext.competitor1);
+      setCompetitor2(dashboardContext.competitor2);
+    }
+  }, [dashboardContext?.competitor1, dashboardContext?.competitor2]);
+  
+  // Show competitor section when triggered from chat and scroll to it
+  useEffect(() => {
+    if (dashboardContext?.showCompetitorAnalysis) {
+      setShowCompetitorSection(true);
+      // Scroll to the competitor analysis section
+      setTimeout(() => {
+        const element = document.getElementById('competitor-analysis-section');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, [dashboardContext?.showCompetitorAnalysis]);
 
   const availableSymbols = yahooFinanceService.getAvailableSymbols();
 
@@ -786,7 +813,20 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({
       </Paper>
 
       {/* Competitor Analysis Section - At the Top */}
-      <Card sx={{ mb: 2, border: '2px solid #1a237e' }}>
+      <Card 
+        id="competitor-analysis-section"
+        sx={{ 
+          mb: 2, 
+          border: showCompetitorSection ? '3px solid #4caf50' : '2px solid #1a237e',
+          transition: 'border-color 0.3s ease',
+          animation: showCompetitorSection ? 'pulse 2s ease-in-out' : 'none',
+          '@keyframes pulse': {
+            '0%': { boxShadow: '0 0 0 0 rgba(76, 175, 80, 0.4)' },
+            '70%': { boxShadow: '0 0 0 10px rgba(76, 175, 80, 0)' },
+            '100%': { boxShadow: '0 0 0 0 rgba(76, 175, 80, 0)' },
+          },
+        }}
+      >
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

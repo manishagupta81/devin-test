@@ -48,12 +48,20 @@ const getRuntimeUrl = () => {
 export interface DashboardContext {
   selectedTicker: string;
   setSelectedTicker: (ticker: string) => void;
+  competitor1: string;
+  competitor2: string;
+  setCompetitors: (c1: string, c2: string) => void;
+  showCompetitorAnalysis: boolean;
+  setShowCompetitorAnalysis: (show: boolean) => void;
 }
 
 export const DashboardStateContext = React.createContext<DashboardContext | null>(null);
 
 function App() {
   const [selectedTicker, setSelectedTicker] = useState('AAPL');
+  const [competitor1, setCompetitor1] = useState('MSFT');
+  const [competitor2, setCompetitor2] = useState('GOOGL');
+  const [showCompetitorAnalysis, setShowCompetitorAnalysis] = useState(false);
   
   const menuItems = [
     { id: 'company-dashboard', label: 'Company Dashboard', icon: <Business /> },
@@ -63,9 +71,23 @@ function App() {
     setSelectedTicker(ticker);
   }, []);
 
+  const handleSetCompetitors = useCallback((c1: string, c2: string) => {
+    setCompetitor1(c1);
+    setCompetitor2(c2);
+    setShowCompetitorAnalysis(true);
+  }, []);
+
   return (
     <CopilotKit runtimeUrl={getRuntimeUrl()} showDevConsole={false}>
-      <DashboardStateContext.Provider value={{ selectedTicker, setSelectedTicker: handleTickerChange }}>
+      <DashboardStateContext.Provider value={{ 
+          selectedTicker, 
+          setSelectedTicker: handleTickerChange,
+          competitor1,
+          competitor2,
+          setCompetitors: handleSetCompetitors,
+          showCompetitorAnalysis,
+          setShowCompetitorAnalysis,
+        }}>
         <ThemeProvider theme={theme}>
           <Box sx={{ display: 'flex' }}>
             <CssBaseline />
