@@ -482,10 +482,17 @@ interface CompanyDashboardProps {
 type TimeRange = '1D' | '5D' | '1M' | '3M' | '6M' | '1Y' | '5Y';
 
 const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ 
-  selectedCompany: initialCompany = 'AAPL',
+  selectedCompany = 'AAPL',
   onCompanySelect 
 }) => {
-  const [selectedTicker, setSelectedTicker] = useState(initialCompany);
+  const [selectedTicker, setSelectedTicker] = useState(selectedCompany);
+  
+  // Sync with parent's selectedCompany prop when it changes
+  useEffect(() => {
+    if (selectedCompany !== selectedTicker) {
+      setSelectedTicker(selectedCompany);
+    }
+  }, [selectedCompany]);
   const [stockData, setStockData] = useState<StockQuote | null>(null);
   const [chartData, setChartData] = useState<HistoricalDataPoint[]>([]);
   const [competitors, setCompetitors] = useState<StockQuote[]>([]);
