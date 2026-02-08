@@ -306,6 +306,7 @@ The React frontend is deployed to Devin Apps:
 - **URL**: https://equity-intelligence-app-t4ajy40b.devinapps.com
 - **Build Command**: `npm run build`
 - **Build Output**: `build/` directory
+- **Deployment Method**: Static file hosting via Devin's deploy tool
 
 ### Backend Deployment
 
@@ -314,17 +315,100 @@ The FastAPI backend is deployed to Fly.io:
 - **URL**: https://app-iuirfrrz.fly.dev
 - **CopilotKit Endpoint**: https://app-iuirfrrz.fly.dev/copilotkit
 - **Health Check**: https://app-iuirfrrz.fly.dev/healthz
+- **Region**: Automatically selected by Fly.io
+- **Deployment Method**: Fly.io deployment via Devin's deploy tool
+
+### API Key Configuration
+
+#### Setting Up OpenAI API Key on Fly.io Backend
+
+The OpenAI API key is configured as a secret on the Fly.io deployment. This was done using:
+
+```bash
+# Set the secret on Fly.io (done via Devin's deploy tool)
+fly secrets set OPENAI_API_KEY=<your-openai-api-key> --app app-iuirfrrz
+```
+
+The backend reads this key from the environment:
+
+```python
+# copilot-backend/app/main.py
+import os
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+```
+
+#### Verifying API Key Configuration
+
+To verify the API key is properly configured:
+
+1. Check the health endpoint: `curl https://app-iuirfrrz.fly.dev/healthz`
+   - Should return: `{"status":"ok"}`
+
+2. Test the CopilotKit endpoint by sending a chat message through the frontend
+
+#### Updating the API Key
+
+If you need to update the OpenAI API key:
+
+1. Go to the Fly.io dashboard: https://fly.io/apps/app-iuirfrrz
+2. Navigate to Secrets
+3. Update the `OPENAI_API_KEY` secret
+4. The app will automatically restart with the new key
+
+Or use the Fly CLI:
+```bash
+fly secrets set OPENAI_API_KEY=<new-api-key> --app app-iuirfrrz
+```
 
 ### Environment Variables
 
 #### Backend (Fly.io)
-```
-OPENAI_API_KEY=<your-openai-api-key>
-```
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `OPENAI_API_KEY` | OpenAI API key for GPT-4o | Yes |
 
 #### Frontend (Build-time)
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `REACT_APP_COPILOT_RUNTIME_URL` | Backend CopilotKit endpoint URL | `https://app-iuirfrrz.fly.dev/copilotkit` |
+
+### Deployment Architecture
+
 ```
-REACT_APP_COPILOT_RUNTIME_URL=https://app-iuirfrrz.fly.dev/copilotkit
+┌─────────────────────────────────────────────────────────────────┐
+│                        User's Browser                            │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │     https://equity-intelligence-app-t4ajy40b.devinapps.com   │
+│  │                    (React Frontend)                      │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ HTTPS (AG-UI Protocol)
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                         Fly.io                                   │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │        https://app-iuirfrrz.fly.dev                      │    │
+│  │              (FastAPI Backend)                           │    │
+│  │                                                          │    │
+│  │  Secrets:                                                │    │
+│  │  - OPENAI_API_KEY: sk-***                               │    │
+│  │                                                          │    │
+│  │  Endpoints:                                              │    │
+│  │  - /copilotkit (CopilotKit runtime)                     │    │
+│  │  - /healthz (Health check)                              │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ HTTPS
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       OpenAI API                                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │              https://api.openai.com/v1                   │    │
+│  │                    (GPT-4o Model)                        │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Configuration
