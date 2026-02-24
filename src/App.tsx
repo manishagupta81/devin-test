@@ -32,6 +32,7 @@ import {
   ExpandLess,
   NoteAdd,
   Business,
+  Assignment,
 } from '@mui/icons-material';
 import { FileItem, FileCategory, TickerSubscription, TeamSubscription } from './types';
 import FileList from './components/FileList';
@@ -40,6 +41,7 @@ import IRNEditor from './components/IRNEditor';
 import SubscriptionsManager from './components/SubscriptionsManager';
 import GlobalChat from './components/GlobalChat';
 import CompanyDashboard from './components/CompanyDashboard';
+import SampleForm from './components/SampleForm';
 
 const theme = createTheme({
   palette: {
@@ -111,6 +113,7 @@ function App() {
       { id: 'ai-reports', label: 'AI Generated Reports', icon: <SmartToy /> },
       { id: 'external-files', label: 'External Files', icon: <FolderOpen /> },
       { id: 'internal-research', label: 'Internal Research', icon: <Science /> },
+      { id: 'sample', label: 'Sample', icon: <Assignment /> },
       { id: 'agents', label: 'Agents', icon: <AndroidIcon /> },
       { id: 'settings', label: 'Settings', icon: <Settings /> },
     ];
@@ -499,6 +502,10 @@ function App() {
                               </Box>
                             )}
               
+              {selectedMenuItem === 'sample' && (
+                <SampleForm />
+              )}
+
               {selectedMenuItem === 'settings' && (
                 <Box sx={{ textAlign: 'center', mt: 8 }}>
                   <Typography variant="h4" sx={{ mb: 2 }}>
