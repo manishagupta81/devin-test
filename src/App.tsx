@@ -33,6 +33,9 @@ import {
   NoteAdd,
   Business,
 } from '@mui/icons-material';
+import {
+  AccountBalance,
+} from '@mui/icons-material';
 import { FileItem, FileCategory, TickerSubscription, TeamSubscription } from './types';
 import FileList from './components/FileList';
 import FileUpload from './components/FileUpload';
@@ -40,6 +43,7 @@ import IRNEditor from './components/IRNEditor';
 import SubscriptionsManager from './components/SubscriptionsManager';
 import GlobalChat from './components/GlobalChat';
 import CompanyDashboard from './components/CompanyDashboard';
+import { WealthPlanningPage } from './components/WealthPlanning';
 
 const theme = createTheme({
   palette: {
@@ -111,6 +115,7 @@ function App() {
       { id: 'ai-reports', label: 'AI Generated Reports', icon: <SmartToy /> },
       { id: 'external-files', label: 'External Files', icon: <FolderOpen /> },
       { id: 'internal-research', label: 'Internal Research', icon: <Science /> },
+      { id: 'wealth-planning', label: 'Wealth Planning', icon: <AccountBalance /> },
       { id: 'agents', label: 'Agents', icon: <AndroidIcon /> },
       { id: 'settings', label: 'Settings', icon: <Settings /> },
     ];
@@ -499,6 +504,10 @@ function App() {
                               </Box>
                             )}
               
+              {selectedMenuItem === 'wealth-planning' && (
+                <WealthPlanningPage />
+              )}
+
               {selectedMenuItem === 'settings' && (
                 <Box sx={{ textAlign: 'center', mt: 8 }}>
                   <Typography variant="h4" sx={{ mb: 2 }}>
