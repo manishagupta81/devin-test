@@ -32,8 +32,6 @@ import {
   ExpandLess,
   NoteAdd,
   Business,
-} from '@mui/icons-material';
-import {
   AccountBalance,
 } from '@mui/icons-material';
 import { FileItem, FileCategory, TickerSubscription, TeamSubscription } from './types';
