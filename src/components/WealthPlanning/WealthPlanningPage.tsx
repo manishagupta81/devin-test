@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Box, Typography, AppBar, Toolbar } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import AssistantCard from './AssistantCard';
-import ChatModal from './ChatModal';
+import ChatView from './ChatView';
 import { AgentConfig } from './types';
 
 const agents: AgentConfig[] = [
@@ -21,57 +21,35 @@ const agents: AgentConfig[] = [
 ];
 
 const WealthPlanningPage: React.FC = () => {
-  const [chatOpen, setChatOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<AgentConfig | null>(null);
 
   const handleLaunch = (agent: AgentConfig) => {
     setSelectedAgent(agent);
-    setChatOpen(true);
   };
 
-  const handleClose = () => {
-    setChatOpen(false);
+  const handleBack = () => {
+    setSelectedAgent(null);
   };
 
+  // Full-page chat view when agent is selected
+  if (selectedAgent) {
+    return <ChatView agent={selectedAgent} onBack={handleBack} />;
+  }
+
+  // Agent cards view
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f5f7f6' }}>
-      {/* Wealth Planning Header */}
-      <AppBar
-        position="static"
-        elevation={0}
-        sx={{
-          bgcolor: '#1a3a2a',
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-        }}
-      >
-        <Toolbar sx={{ minHeight: 56 }}>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 700,
-              color: 'white',
-              letterSpacing: '0.5px',
-              fontSize: '1.1rem',
-            }}
-          >
-            Wealth Planning
-          </Typography>
-        </Toolbar>
-      </AppBar>
-
-      {/* Main Content */}
+    <Box sx={{ minHeight: 'calc(100vh - 64px)' }}>
       <Box
         sx={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: 'calc(100vh - 56px - 64px)',
+          minHeight: 'calc(100vh - 64px)',
           px: 3,
           py: 6,
         }}
       >
-        {/* Page Title */}
         <Typography
           variant="h4"
           sx={{
@@ -95,7 +73,6 @@ const WealthPlanningPage: React.FC = () => {
           Select an assistant to get started with AI-powered advisory services.
         </Typography>
 
-        {/* Agent Cards Grid */}
         <Box
           sx={{
             display: 'flex',
@@ -113,15 +90,6 @@ const WealthPlanningPage: React.FC = () => {
           ))}
         </Box>
       </Box>
-
-      {/* Chat Modal */}
-      {selectedAgent && (
-        <ChatModal
-          open={chatOpen}
-          onClose={handleClose}
-          agent={selectedAgent}
-        />
-      )}
     </Box>
   );
 };
