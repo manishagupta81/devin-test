@@ -116,7 +116,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ open, onClose, agent }) => {
               {agent.name}
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.7 }}>
-              {agent.department} Department
+              {agent.department.replace('_', ' ')} Department
             </Typography>
           </Box>
         </Box>

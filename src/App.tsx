@@ -424,7 +424,7 @@ function App() {
         >
           <Toolbar />
           
-          {!selectedDepartment ? (
+          {!selectedDepartment && selectedMenuItem !== 'wealth-planning' ? (
             <Box sx={{ 
               display: 'flex',
               alignItems: 'center',
