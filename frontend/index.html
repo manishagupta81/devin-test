@@ -754,6 +754,8 @@
     // SUBMIT FORM (Requestor)
     document.getElementById('genaiForm').addEventListener('submit', async function(e) {
       e.preventDefault();
+      const submitBtn = this.querySelector('button[type="submit"]');
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
       const data = serializeForm(this);
       try {
         const res = await fetch(API_URL + '/api/submissions', {
@@ -768,6 +770,8 @@
         setTimeout(() => setMode('dashboard'), 1500);
       } catch(e) {
         showToast('Error submitting form. Check backend connection.', true);
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit for Review'; }
       }
     });
 
@@ -793,6 +797,8 @@
     document.getElementById('reviewForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       if (!currentReviewSubId) { showToast('Load a submission first', true); return; }
+      const submitBtn = this.querySelector('button[type="submit"]');
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
       const data = serializeForm(this);
       const findings = {};
       this.querySelectorAll('select[name^="risk_"]').forEach(sel => {
@@ -812,6 +818,8 @@
         this.reset();
       } catch(e) {
         showToast('Error submitting review.', true);
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Review'; }
       }
     });
 
@@ -843,6 +851,8 @@
     document.getElementById('approveForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       if (!currentApproveSubId) { showToast('Load a submission first', true); return; }
+      const submitBtn = this.querySelector('button[type="submit"]');
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
       const data = serializeForm(this);
       data.ratings = {
         model: data.ratingModel || '',
@@ -863,6 +873,8 @@
         document.getElementById('approveFormWrapper').style.display = 'none';
       } catch(e) {
         showToast('Error submitting decision.', true);
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Final Decision'; }
       }
     });
 
