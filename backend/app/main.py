@@ -1,9 +1,11 @@
+import html
 import os
 import uuid
 from datetime import datetime
 from typing import Optional
 
 import boto3
+from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -72,15 +74,17 @@ def send_email(subject: str, body_html: str, to_email: str):
 
 
 def build_requestor_summary_email(submission: dict, review_url: str) -> str:
-    project = submission.get("projectName", "N/A")
-    business_unit = submission.get("businessUnit", "N/A")
-    solution_type = submission.get("solutionType", "N/A")
-    request_type = submission.get("requestType", "N/A")
-    business_sponsor = submission.get("businessSponsor", "N/A")
-    risk_tier = submission.get("riskTier", "N/A")
+    project = html.escape(submission.get("projectName", "N/A"))
+    business_unit = html.escape(submission.get("businessUnit", "N/A"))
+    solution_type = html.escape(submission.get("solutionType", "N/A"))
+    request_type = html.escape(submission.get("requestType", "N/A"))
+    business_sponsor = html.escape(submission.get("businessSponsor", "N/A"))
+    risk_tier = html.escape(submission.get("riskTier", "N/A"))
     biz_obj = submission.get("bizObj", [])
     if isinstance(biz_obj, list):
-        biz_obj = ", ".join(biz_obj)
+        biz_obj = html.escape(", ".join(biz_obj))
+    else:
+        biz_obj = html.escape(str(biz_obj))
 
     return f"""
     <html>
@@ -136,15 +140,15 @@ def build_requestor_summary_email(submission: dict, review_url: str) -> str:
 
 
 def build_reviewer_summary_email(submission: dict, reviews: dict, approve_url: str) -> str:
-    project = submission.get("projectName", "N/A")
-    business_unit = submission.get("businessUnit", "N/A")
-    risk_tier = submission.get("riskTier", "N/A")
+    project = html.escape(submission.get("projectName", "N/A"))
+    business_unit = html.escape(submission.get("businessUnit", "N/A"))
+    risk_tier = html.escape(submission.get("riskTier", "N/A"))
 
     review_sections = ""
     for reviewer_type, review_data in reviews.items():
-        reviewer_name = review_data.get("reviewerName", "N/A")
-        decision = review_data.get("recommendation", "N/A")
-        notes = review_data.get("notes", "N/A")
+        reviewer_name = html.escape(review_data.get("reviewerName", "N/A"))
+        decision = html.escape(review_data.get("recommendation", "N/A"))
+        notes = html.escape(review_data.get("notes", "N/A"))
         color = "#15803d" if decision == "approve" else "#dc2626" if decision == "reject" else "#a16207"
         review_sections += f"""
         <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin-bottom: 12px;">
@@ -295,12 +299,23 @@ async def submit_review(submission_id: str, review_type: str, request: Request):
     )
 
     if all_complete:
-        table.update_item(
-            Key={"id": submission_id},
-            UpdateExpression="SET #s = :s, updated_at = :u",
-            ExpressionAttributeNames={"#s": "status"},
-            ExpressionAttributeValues={":s": "reviewed", ":u": now},
-        )
+        # Atomic conditional update to prevent duplicate approval emails
+        try:
+            table.update_item(
+                Key={"id": submission_id},
+                UpdateExpression="SET #s = :s, updated_at = :u",
+                ExpressionAttributeNames={"#s": "status"},
+                ExpressionAttributeValues={":s": "reviewed", ":u": now, ":expected": "submitted"},
+                ConditionExpression="#s = :expected",
+            )
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+                # Another request already transitioned the status; skip email
+                return {
+                    "message": f"{review_type.title()} review submitted.",
+                    "all_reviews_complete": all_complete,
+                }
+            raise
 
         approve_url = f"{FRONTEND_URL}?approve={submission_id}"
         form_data = item.get("form_data", {})
@@ -355,7 +370,9 @@ async def approve_submission(submission_id: str, request: Request):
 
     # Send confirmation email
     form_data = item.get("form_data", {})
-    decision_label = data.get("decision", "N/A").upper()
+    decision_label = html.escape(data.get("decision", "N/A").upper())
+    safe_project = html.escape(form_data.get("projectName", "N/A"))
+    safe_approver = html.escape(data.get("approverName", "N/A"))
     color = "#15803d" if data.get("decision") == "approved" else "#dc2626" if data.get("decision") == "rejected" else "#a16207"
 
     email_html = f"""
@@ -366,11 +383,11 @@ async def approve_submission(submission_id: str, request: Request):
           <h1 style="margin: 0; font-size: 1.3rem;">GenAI Review - Decision Made</h1>
         </div>
         <div style="padding: 24px; text-align: center;">
-          <h2 style="font-size: 1.1rem; color: #1e293b;">{form_data.get('projectName', 'N/A')}</h2>
+          <h2 style="font-size: 1.1rem; color: #1e293b;">{safe_project}</h2>
           <div style="display: inline-block; background: {color}; color: white; padding: 8px 24px; border-radius: 20px; font-weight: 700; font-size: 1rem; margin: 16px 0;">
             {decision_label}
           </div>
-          <p style="font-size: 0.85rem; color: #64748b;">Approved by: {data.get('approverName', 'N/A')} on {now[:10]}</p>
+          <p style="font-size: 0.85rem; color: #64748b;">Approved by: {safe_approver} on {now[:10]}</p>
         </div>
       </div>
     </body>
