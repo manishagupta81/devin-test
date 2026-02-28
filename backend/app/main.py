@@ -271,16 +271,22 @@ async def submit_review(submission_id: str, review_type: str, request: Request):
         "reviewerName": data.get("reviewerName", ""),
         "reviewDate": data.get("reviewDate", datetime.utcnow().isoformat()),
         "recommendation": data.get("recommendation", ""),
-        "notes": data.get("notes", ""),
+        "notes": data.get("reviewNotes", data.get("notes", "")),
         "findings": data.get("findings", {}),
     }
 
     now = datetime.utcnow().isoformat()
     table.update_item(
         Key={"id": submission_id},
-        UpdateExpression="SET reviews = :r, updated_at = :u",
-        ExpressionAttributeValues={":r": reviews, ":u": now},
+        UpdateExpression="SET reviews.#rt = :rd, updated_at = :u",
+        ExpressionAttributeNames={"#rt": review_type},
+        ExpressionAttributeValues={":rd": reviews[review_type], ":u": now},
     )
+
+    # Re-fetch to get current state of all reviews (avoids race condition)
+    response = table.get_item(Key={"id": submission_id})
+    item = response.get("Item", {})
+    reviews = item.get("reviews", {})
 
     # Check if all reviews are complete
     all_complete = all(

@@ -649,6 +649,12 @@
       ? 'http://localhost:8000'
       : 'https://app-vcpljwde.fly.dev';
 
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(str || ''));
+      return div.innerHTML;
+    }
+
     let currentReviewType = 'compliance';
     let currentReviewSubId = '';
     let currentApproveSubId = '';
@@ -737,7 +743,7 @@
         }
         list.innerHTML = items.map(s => {
           const statusClass = 'status-' + (s.status || 'submitted');
-          return '<li><div><strong style="font-family:-apple-system,sans-serif;">' + (s.projectName || 'Untitled') + '</strong><br><span style="font-size:0.8rem;color:var(--text-secondary);font-family:-apple-system,sans-serif;">' + (s.businessUnit || '') + ' | ' + (s.requestType || '') + ' | ID: ' + s.id.substring(0,8) + '...</span></div><span class="status-badge ' + statusClass + '">' + (s.status || 'submitted').toUpperCase() + '</span></li>';
+          return '<li><div><strong style="font-family:-apple-system,sans-serif;">' + escapeHtml(s.projectName || 'Untitled') + '</strong><br><span style="font-size:0.8rem;color:var(--text-secondary);font-family:-apple-system,sans-serif;">' + escapeHtml(s.businessUnit || '') + ' | ' + escapeHtml(s.requestType || '') + ' | ID: ' + escapeHtml(s.id.substring(0,8)) + '...</span></div><span class="status-badge ' + statusClass + '">' + escapeHtml((s.status || 'submitted').toUpperCase()) + '</span></li>';
         }).join('');
       } catch(e) {
         document.getElementById('submissionList').innerHTML = '<li style="color:#dc2626;font-family:-apple-system,sans-serif;">Error loading submissions. Is the backend running?</li>';
@@ -774,7 +780,7 @@
         if (!res.ok) throw new Error('Not found');
         const item = await res.json();
         const fd = item.form_data || {};
-        document.getElementById('submissionSummary').innerHTML = '<h3>Submission: ' + (fd.projectName || 'N/A') + '</h3><p style="font-family:-apple-system,sans-serif;font-size:0.85rem;color:var(--text-secondary);">Business Unit: ' + (fd.businessUnit || 'N/A') + ' | Risk Tier: ' + (fd.riskTier || 'N/A') + ' | Status: ' + (item.status || 'N/A') + '</p>';
+        document.getElementById('submissionSummary').innerHTML = '<h3>Submission: ' + escapeHtml(fd.projectName || 'N/A') + '</h3><p style="font-family:-apple-system,sans-serif;font-size:0.85rem;color:var(--text-secondary);">Business Unit: ' + escapeHtml(fd.businessUnit || 'N/A') + ' | Risk Tier: ' + escapeHtml(fd.riskTier || 'N/A') + ' | Status: ' + escapeHtml(item.status || 'N/A') + '</p>';
         document.getElementById('reviewFormWrapper').style.display = 'block';
         switchReviewTab(0);
       } catch(e) {
@@ -823,9 +829,9 @@
         for (const [type, rev] of Object.entries(reviews)) {
           const status = rev.status || 'pending';
           const color = status === 'completed' ? 'var(--bessemer-green)' : 'var(--bessemer-gold)';
-          reviewHtml += '<div style="border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:8px;"><strong style="color:' + color + ';">' + type.toUpperCase() + '</strong>: ' + status + (rev.recommendation ? ' | Rec: ' + rev.recommendation : '') + (rev.reviewerName ? ' | By: ' + rev.reviewerName : '') + '</div>';
+          reviewHtml += '<div style="border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:8px;"><strong style="color:' + color + ';">' + escapeHtml(type.toUpperCase()) + '</strong>: ' + escapeHtml(status) + (rev.recommendation ? ' | Rec: ' + escapeHtml(rev.recommendation) : '') + (rev.reviewerName ? ' | By: ' + escapeHtml(rev.reviewerName) : '') + '</div>';
         }
-        document.getElementById('approvalSummary').innerHTML = '<h3>Submission: ' + (fd.projectName || 'N/A') + '</h3><p style="font-family:-apple-system,sans-serif;font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">Business Unit: ' + (fd.businessUnit || 'N/A') + ' | Risk Tier: ' + (fd.riskTier || 'N/A') + '</p><div class="subsection-title">Review Summary</div>' + reviewHtml;
+        document.getElementById('approvalSummary').innerHTML = '<h3>Submission: ' + escapeHtml(fd.projectName || 'N/A') + '</h3><p style="font-family:-apple-system,sans-serif;font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">Business Unit: ' + escapeHtml(fd.businessUnit || 'N/A') + ' | Risk Tier: ' + escapeHtml(fd.riskTier || 'N/A') + '</p><div class="subsection-title">Review Summary</div>' + reviewHtml;
         document.getElementById('approveFormWrapper').style.display = 'block';
       } catch(e) {
         showToast('Submission not found. Check the ID.', true);
