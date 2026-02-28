@@ -127,6 +127,17 @@
     .cat-legal { background: #fee2e2; }
     .cat-legal h3 { color: #991b1b; }
     .risk-cat-body { padding: 0 16px 16px; }
+
+    /* Collapsible sections */
+    .collapsible-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: linear-gradient(135deg, var(--bessemer-cream), #E8EBE4); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; user-select: none; transition: all 0.2s; margin-bottom: 0; }
+    .collapsible-header:hover { background: linear-gradient(135deg, #E8EBE4, #d4d9cf); }
+    .collapsible-header h3 { margin: 0; font-size: 0.95rem; color: var(--bessemer-green-dark); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; align-items: center; gap: 10px; }
+    .collapsible-header .chevron { display: inline-block; transition: transform 0.3s ease; font-size: 0.8rem; color: var(--text-secondary); }
+    .collapsible-header.open .chevron { transform: rotate(180deg); }
+    .collapsible-header.open { border-radius: var(--radius) var(--radius) 0 0; margin-bottom: 0; }
+    .collapsible-body { overflow: hidden; transition: max-height 0.35s ease, opacity 0.25s ease; max-height: 0; opacity: 0; }
+    .collapsible-body.open { max-height: 5000px; opacity: 1; }
+    .collapsible-body > .collapsible-inner { border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); padding: 0; background: var(--card); }
     .risk-row { display: grid; grid-template-columns: 1fr 180px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.82rem; }
     .risk-row:last-child { border-bottom: none; }
     .risk-row select { padding: 6px 8px; font-size: 0.8rem; }
@@ -456,35 +467,57 @@
       </div>
 
       <div id="reviewFormWrapper" style="display:none;">
-        <div class="dashboard-panel" id="submissionSummary"></div>
-
-        <!-- Read-only requestor tabs (0-6) -->
-        <div id="requestorTabsReadOnly" style="display:none; margin-bottom:20px;">
-          <div class="tab-bar" style="position:relative; margin-bottom:0; border-radius:var(--radius) var(--radius) 0 0;" id="roTabBar">
-            <button class="tab-btn active" onclick="switchROTab(0)">0 Snapshot</button>
-            <button class="tab-btn" onclick="switchROTab(1)">1 Use Case</button>
-            <button class="tab-btn" onclick="switchROTab(2)">2 Classification</button>
-            <button class="tab-btn" onclick="switchROTab(3)">3 Custom GPT</button>
-            <button class="tab-btn" onclick="switchROTab(4)">4 Vendor Tool</button>
-            <button class="tab-btn" onclick="switchROTab(5)">5 IP</button>
-            <button class="tab-btn" onclick="switchROTab(6)">6 Workforce</button>
+        <!-- Collapsible: Submission Summary -->
+        <div class="collapsible-header open" onclick="toggleCollapsible(this)">
+          <h3><span class="chevron">&#9660;</span> Submission Summary</h3>
+        </div>
+        <div class="collapsible-body open">
+          <div class="collapsible-inner">
+            <div class="dashboard-panel" id="submissionSummary" style="margin-bottom:0; border-radius:0 0 var(--radius) var(--radius); border-top:none;"></div>
           </div>
-          <div id="roTabContent" style="background:var(--card); border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius) var(--radius); padding:24px;"></div>
         </div>
 
-        <div class="review-type-selector">
-          <button class="review-type-btn active" onclick="setReviewType('compliance')">Compliance</button>
-          <button class="review-type-btn" onclick="setReviewType('legal')">Legal</button>
-          <button class="review-type-btn" onclick="setReviewType('security')">Security</button>
+        <!-- Collapsible: Read-only requestor tabs (0-6) -->
+        <div id="requestorTabsReadOnly" style="display:none; margin-top:16px;">
+          <div class="collapsible-header open" onclick="toggleCollapsible(this)">
+            <h3><span class="chevron">&#9660;</span> Requestor Submission (Tabs 0-6) &mdash; Read Only</h3>
+          </div>
+          <div class="collapsible-body open">
+            <div class="collapsible-inner">
+              <div class="tab-bar" style="position:relative; margin-bottom:0; border-radius:0;" id="roTabBar">
+                <button class="tab-btn active" onclick="switchROTab(0)">0 Snapshot</button>
+                <button class="tab-btn" onclick="switchROTab(1)">1 Use Case</button>
+                <button class="tab-btn" onclick="switchROTab(2)">2 Classification</button>
+                <button class="tab-btn" onclick="switchROTab(3)">3 Custom GPT</button>
+                <button class="tab-btn" onclick="switchROTab(4)">4 Vendor Tool</button>
+                <button class="tab-btn" onclick="switchROTab(5)">5 IP</button>
+                <button class="tab-btn" onclick="switchROTab(6)">6 Workforce</button>
+              </div>
+              <div id="roTabContent" style="background:var(--card); border-top:1px solid var(--border); border-radius:0 0 var(--radius) var(--radius); padding:24px;"></div>
+            </div>
+          </div>
         </div>
 
-        <!-- Review tabs 7-10 -->
-        <div class="tab-bar" style="position:relative; margin-bottom:20px; border-radius:var(--radius);" id="reviewTabBar">
-          <button class="tab-btn active" onclick="switchReviewTab(0)">7 Regulatory</button>
-          <button class="tab-btn" onclick="switchReviewTab(1)">8 Risk Library</button>
-          <button class="tab-btn" onclick="switchReviewTab(2)">9 Risk Declaration</button>
-          <button class="tab-btn" onclick="switchReviewTab(3)">10 Assessment</button>
-        </div>
+        <!-- Collapsible: Reviewer Assessment (Tabs 7-10) -->
+        <div style="margin-top:16px;">
+          <div class="collapsible-header open" onclick="toggleCollapsible(this)">
+            <h3><span class="chevron">&#9660;</span> Reviewer Assessment (Tabs 7-10)</h3>
+          </div>
+          <div class="collapsible-body open">
+            <div class="collapsible-inner" style="padding:20px;">
+              <div class="review-type-selector">
+                <button class="review-type-btn active" onclick="setReviewType('compliance')">Compliance</button>
+                <button class="review-type-btn" onclick="setReviewType('legal')">Legal</button>
+                <button class="review-type-btn" onclick="setReviewType('security')">Security</button>
+              </div>
+
+              <!-- Review tabs 7-10 -->
+              <div class="tab-bar" style="position:relative; margin-bottom:20px; border-radius:var(--radius);" id="reviewTabBar">
+                <button class="tab-btn active" onclick="switchReviewTab(0)">7 Regulatory</button>
+                <button class="tab-btn" onclick="switchReviewTab(1)">8 Risk Library</button>
+                <button class="tab-btn" onclick="switchReviewTab(2)">9 Risk Declaration</button>
+                <button class="tab-btn" onclick="switchReviewTab(3)">10 Assessment</button>
+              </div>
 
         <form id="reviewForm">
           <!-- Review Tab 7: Regulatory -->
@@ -624,6 +657,9 @@
             </div>
           </div>
         </form>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1101,6 +1137,12 @@
 
     let currentROTab = 0;
     let currentROFormData = {};
+
+    function toggleCollapsible(header) {
+      header.classList.toggle('open');
+      const body = header.nextElementSibling;
+      body.classList.toggle('open');
+    }
 
     function switchROTab(idx) {
       currentROTab = idx;
