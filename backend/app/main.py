@@ -292,8 +292,8 @@ async def submit_review(submission_id: str, review_type: str, request: Request):
         ExpressionAttributeValues={":rd": reviews[review_type], ":u": now},
     )
 
-    # Re-fetch to get current state of all reviews (avoids race condition)
-    response = table.get_item(Key={"id": submission_id})
+    # Re-fetch to get current state of all reviews (consistent read to avoid stale data)
+    response = table.get_item(Key={"id": submission_id}, ConsistentRead=True)
     item = response.get("Item", {})
     reviews = item.get("reviews", {})
 
