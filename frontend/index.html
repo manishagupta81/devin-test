@@ -458,6 +458,20 @@
       <div id="reviewFormWrapper" style="display:none;">
         <div class="dashboard-panel" id="submissionSummary"></div>
 
+        <!-- Read-only requestor tabs (0-6) -->
+        <div id="requestorTabsReadOnly" style="display:none; margin-bottom:20px;">
+          <div class="tab-bar" style="position:relative; margin-bottom:0; border-radius:var(--radius) var(--radius) 0 0;" id="roTabBar">
+            <button class="tab-btn active" onclick="switchROTab(0)">0 Snapshot</button>
+            <button class="tab-btn" onclick="switchROTab(1)">1 Use Case</button>
+            <button class="tab-btn" onclick="switchROTab(2)">2 Classification</button>
+            <button class="tab-btn" onclick="switchROTab(3)">3 Custom GPT</button>
+            <button class="tab-btn" onclick="switchROTab(4)">4 Vendor Tool</button>
+            <button class="tab-btn" onclick="switchROTab(5)">5 IP</button>
+            <button class="tab-btn" onclick="switchROTab(6)">6 Workforce</button>
+          </div>
+          <div id="roTabContent" style="background:var(--card); border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius) var(--radius); padding:24px;"></div>
+        </div>
+
         <div class="review-type-selector">
           <button class="review-type-btn active" onclick="setReviewType('compliance')">Compliance</button>
           <button class="review-type-btn" onclick="setReviewType('legal')">Legal</button>
@@ -1010,6 +1024,109 @@
       }
     });
 
+    // READ-ONLY TAB DEFINITIONS (matches requestor tabs 0-6)
+    const RO_TAB_DEFS = [
+      { title: 'Section 0 — Snapshot', subtitle: 'All Submissions', fields: [
+        { key: 'solutionType', label: 'Solution Type' },
+        { key: 'requestType', label: 'Request Type' },
+        { key: 'projectName', label: 'Project Name' },
+        { key: 'businessUnit', label: 'Business Unit' },
+        { key: 'businessSponsor', label: 'Business Sponsor' },
+        { key: 'executiveSponsor', label: 'Executive Sponsor' },
+        { key: 'businessOwner', label: 'Business Owner' },
+        { key: 'technicalOwner', label: 'Technical Owner' },
+        { key: 'submissionDate', label: 'Submission Date' },
+        { key: 'goLiveDate', label: 'Target Go-Live Date' },
+        { key: 'bizObj', label: 'Business Objectives' },
+      ]},
+      { title: 'Section 1 — Use Case & Workflow Clarity', subtitle: 'All Submissions', fields: [
+        { key: 'wfTrigger', label: 'Trigger' },
+        { key: 'wfInputs', label: 'Inputs' },
+        { key: 'wfProcessing', label: 'Processing' },
+        { key: 'wfOutputs', label: 'Outputs' },
+        { key: 'outputType', label: 'Output Types Produced' },
+        { key: 'audienceCount', label: 'Audience Count' },
+        { key: 'userAddRemove', label: 'User Add/Remove Process' },
+        { key: 'decisionSupport', label: 'Decision Support Level' },
+      ]},
+      { title: 'Section 2 — AI System Classification', subtitle: 'All Submissions', fields: [
+        { key: 'aiType', label: 'AI Type' },
+        { key: 'riskTier', label: 'Risk Tier' },
+        { key: 'riskChar', label: 'Risk Characteristics' },
+      ]},
+      { title: 'Option A — Custom GPT (Firm-Built Model)', subtitle: 'Complete if Option A selected', fields: [
+        { key: 'a1ModelName', label: 'Model Name' },
+        { key: 'a1BaseModel', label: 'Base Model' },
+        { key: 'a1ModelVersion', label: 'Model Version' },
+        { key: 'a1Hosting', label: 'Hosting Environment' },
+        { key: 'a1Architecture', label: 'Architecture Description' },
+        { key: 'a1TrainingData', label: 'Training Data Sources' },
+        { key: 'a1DataClassification', label: 'Data Classification' },
+        { key: 'a1DataRetention', label: 'Data Retention Policy' },
+        { key: 'a1Accuracy', label: 'Accuracy Metrics' },
+        { key: 'a1Hallucination', label: 'Hallucination Mitigation' },
+      ]},
+      { title: 'Option B — Vendor Tool (External SaaS)', subtitle: 'Complete if Option B selected', fields: [
+        { key: 'b1VendorName', label: 'Vendor Name' },
+        { key: 'b1ProductName', label: 'Product Name' },
+        { key: 'b1UnderlyingModel', label: 'Underlying Model' },
+        { key: 'b1AccessMode', label: 'Access Mode' },
+        { key: 'b1ContractStatus', label: 'Contract Status' },
+        { key: 'b1SecurityAssessment', label: 'Security Assessment Status' },
+        { key: 'b1DataLocation', label: 'Data Location' },
+        { key: 'b1VendorRetention', label: 'Vendor Retention Policy' },
+        { key: 'b1TrainOnData', label: 'Vendor Trains on Data?' },
+      ]},
+      { title: 'Section 3 — Intellectual Property', subtitle: 'All Submissions', fields: [
+        { key: 'ip1Ownership', label: 'IP Ownership' },
+        { key: 'ip2Infringement', label: 'IP Infringement Risk' },
+        { key: 'ip3Indemnification', label: 'Vendor Indemnification' },
+        { key: 'ip4Plagiarism', label: 'Plagiarism Detection' },
+        { key: 'ip5Confidentiality', label: 'Confidentiality Protections' },
+        { key: 'ip6ExternalUse', label: 'External Use Restrictions' },
+        { key: 'ip7Restrictions', label: 'Output Redistribution' },
+        { key: 'ip8Training', label: 'Training Data IP Clearance' },
+      ]},
+      { title: 'Section 4 — Workforce Impact', subtitle: 'All Submissions', fields: [
+        { key: 'wf1JobReplacement', label: 'Job Replacement Impact' },
+        { key: 'wf2Assessment', label: 'Impact Assessment' },
+        { key: 'wf3HRConsult', label: 'HR Consultation' },
+        { key: 'wf4Training', label: 'Training Plan' },
+        { key: 'wf5SkillAtrophy', label: 'Skill Atrophy Risk' },
+        { key: 'wf6Accountability', label: 'Accountability Framework' },
+        { key: 'wf7ClientConcerns', label: 'Client Concerns' },
+        { key: 'wf8Escalation', label: 'Escalation Path' },
+      ]},
+    ];
+
+    let currentROTab = 0;
+    let currentROFormData = {};
+
+    function switchROTab(idx) {
+      currentROTab = idx;
+      document.querySelectorAll('#roTabBar .tab-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
+      renderROTab();
+    }
+
+    function renderROTab() {
+      const def = RO_TAB_DEFS[currentROTab];
+      const fd = currentROFormData;
+      let html = '<div class="panel-header" style="margin:-24px -24px 20px; padding:20px 28px; border-bottom:3px solid var(--bessemer-green); border-radius:0;"><h2>' + escapeHtml(def.title) + '</h2><div class="panel-subtitle">' + escapeHtml(def.subtitle) + ' <span style="color:var(--bessemer-gold); font-weight:700;">— Read Only</span></div></div>';
+      let hasData = false;
+      def.fields.forEach(f => {
+        let val = fd[f.key];
+        if (Array.isArray(val)) val = val.join(', ');
+        if (!val) val = '';
+        if (val) hasData = true;
+        const displayVal = val ? escapeHtml(String(val)) : '<span style="color:var(--text-secondary); font-style:italic;">Not provided</span>';
+        html += '<div style="margin-bottom:14px;"><div style="font-size:0.82rem; font-weight:700; color:var(--text-secondary); margin-bottom:4px; font-family:-apple-system,sans-serif;">' + escapeHtml(f.label) + '</div><div style="font-size:0.9rem; padding:10px 14px; background:var(--bessemer-cream); border:1px solid var(--border); border-radius:6px; min-height:38px;">' + displayVal + '</div></div>';
+      });
+      if (!hasData) {
+        html += '<p style="color:var(--text-secondary); font-style:italic; font-family:-apple-system,sans-serif;">No data submitted for this section.</p>';
+      }
+      document.getElementById('roTabContent').innerHTML = html;
+    }
+
     // LOAD REVIEW
     async function loadReview() {
       const subId = document.getElementById('reviewSubId').value.trim();
@@ -1020,7 +1137,29 @@
         if (!res.ok) throw new Error('Not found');
         const item = await res.json();
         const fd = item.form_data || {};
-        document.getElementById('submissionSummary').innerHTML = '<h3>Submission: ' + escapeHtml(fd.projectName || 'N/A') + '</h3><p style="font-family:-apple-system,sans-serif;font-size:0.85rem;color:var(--text-secondary);">Business Unit: ' + escapeHtml(fd.businessUnit || 'N/A') + ' | Risk Tier: ' + escapeHtml(fd.riskTier || 'N/A') + ' | Status: ' + escapeHtml(item.status || 'N/A') + '</p>';
+        currentROFormData = fd;
+
+        // Build summary with agent info if available
+        let summaryHtml = '<h3>Submission: ' + escapeHtml(fd.projectName || 'N/A') + '</h3><p style="font-family:-apple-system,sans-serif;font-size:0.85rem;color:var(--text-secondary);">Business Unit: ' + escapeHtml(fd.businessUnit || 'N/A') + ' | Risk Tier: ' + escapeHtml(fd.riskTier || 'N/A') + ' | Status: ' + escapeHtml(item.status || 'N/A') + '</p>';
+        if (item.agent_summary) {
+          const as = item.agent_summary;
+          summaryHtml += '<div style="margin-top:12px; padding:12px; background:var(--bessemer-cream); border:1px solid var(--border); border-radius:6px;"><div style="font-size:0.82rem; font-weight:700; color:var(--bessemer-green-dark); margin-bottom:8px; font-family:-apple-system,sans-serif;">AI Agent Summary</div>';
+          summaryHtml += '<div style="font-size:0.82rem; font-family:-apple-system,sans-serif; line-height:1.6;">';
+          summaryHtml += '<strong>Risk Level:</strong> ' + escapeHtml(String(as.riskLevel || 'N/A')) + ' | <strong>Priority:</strong> ' + escapeHtml(String(as.priority || 'N/A')) + ' | <strong>Lane:</strong> ' + escapeHtml(String(as.assignedLane || 'N/A')) + '<br>';
+          summaryHtml += '<strong>Reason:</strong> ' + escapeHtml(String(as.reason || 'N/A'));
+          if (as.missingInformation && as.missingInformation.length) {
+            summaryHtml += '<br><strong>Missing:</strong> ' + escapeHtml(as.missingInformation.join(', '));
+          }
+          summaryHtml += '</div></div>';
+        }
+        document.getElementById('submissionSummary').innerHTML = summaryHtml;
+
+        // Show requestor tabs (read-only)
+        document.getElementById('requestorTabsReadOnly').style.display = 'block';
+        currentROTab = 0;
+        document.querySelectorAll('#roTabBar .tab-btn').forEach((b,i) => b.classList.toggle('active', i === 0));
+        renderROTab();
+
         document.getElementById('reviewFormWrapper').style.display = 'block';
         switchReviewTab(0);
       } catch(e) {

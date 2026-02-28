@@ -1,4 +1,5 @@
 import html
+import json
 import os
 import uuid
 from datetime import datetime
@@ -8,6 +9,7 @@ from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from openai import OpenAI
 
 load_dotenv()
 
@@ -31,6 +33,7 @@ COUNTER_TABLE = os.getenv("COUNTER_TABLE", "genai_counters")
 SES_SENDER_EMAIL = os.getenv("SES_SENDER_EMAIL", "manishagupta81@gmail.com")
 NOTIFY_EMAIL = os.getenv("NOTIFY_EMAIL", "manishagupta81@gmail.com")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 
 def get_dynamodb():
@@ -109,6 +112,129 @@ def send_email(subject: str, body_html: str, to_email: str):
     except Exception as e:
         print(f"Email send error: {e}")
         return False
+
+
+# --- OPENAI SUMMARY GENERATION ---
+
+def get_openai_client():
+    """Get OpenAI client if API key is configured."""
+    if not OPENAI_API_KEY:
+        return None
+    return OpenAI(api_key=OPENAI_API_KEY)
+
+
+def generate_ai_summary(form_data: dict, context: str = "submission") -> str:
+    """Use OpenAI GPT to generate an intelligent summary of a submission."""
+    client = get_openai_client()
+    if not client:
+        return ""
+
+    # Build a clean representation of the form data
+    data_lines = []
+    for key, value in form_data.items():
+        if value and str(value).strip():
+            label = key.replace("_", " ").title()
+            if isinstance(value, list):
+                value = ", ".join(str(v) for v in value)
+            data_lines.append(f"- {label}: {value}")
+
+    form_text = "\n".join(data_lines) if data_lines else "No form data available."
+
+    prompts = {
+        "submission": (
+            "You are a GenAI governance analyst at Bessemer Trust, a prestigious wealth management firm. "
+            "Analyze this AI/GenAI tool submission and produce a concise, professional executive summary "
+            "(3-5 sentences) covering: what the tool does, its business purpose, key risk factors, "
+            "and any notable concerns or strengths. Be specific and actionable. "
+            "Do NOT use markdown formatting - output plain text only."
+        ),
+        "review_complete": (
+            "You are a GenAI governance analyst at Bessemer Trust. All three reviews (compliance, legal, security) "
+            "have been completed for this submission. Produce a concise executive summary (3-5 sentences) "
+            "synthesizing the overall review findings, highlighting key decisions, risk areas, and readiness "
+            "for final approval. Be specific and actionable. Do NOT use markdown formatting - output plain text only."
+        ),
+        "approval": (
+            "You are a GenAI governance analyst at Bessemer Trust. A final approval decision has been made "
+            "for this submission. Produce a concise summary (2-3 sentences) of the decision outcome "
+            "and any conditions or next steps. Be specific and professional. "
+            "Do NOT use markdown formatting - output plain text only."
+        ),
+        "needs_info": (
+            "You are a GenAI governance analyst at Bessemer Trust. This submission is missing critical information. "
+            "Produce a concise, helpful message (3-4 sentences) explaining what information is needed and why "
+            "it matters for the review process. Be specific about what the requestor should provide. "
+            "Do NOT use markdown formatting - output plain text only."
+        ),
+    }
+
+    system_prompt = prompts.get(context, prompts["submission"])
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Submission data:\n{form_text}"},
+            ],
+            max_tokens=300,
+            temperature=0.7,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"OpenAI summary error: {e}")
+        return ""
+
+
+def generate_review_summary(form_data: dict, reviews: dict) -> str:
+    """Generate AI summary incorporating review findings."""
+    client = get_openai_client()
+    if not client:
+        return ""
+
+    data_lines = []
+    for key, value in form_data.items():
+        if value and str(value).strip():
+            if isinstance(value, list):
+                value = ", ".join(str(v) for v in value)
+            data_lines.append(f"- {key}: {value}")
+
+    review_lines = []
+    for rtype, rdata in reviews.items():
+        reviewer = rdata.get("reviewerName", "N/A")
+        rec = rdata.get("recommendation", "N/A")
+        notes = rdata.get("notes", "N/A")
+        review_lines.append(f"- {rtype.title()}: Recommendation={rec}, Reviewer={reviewer}, Notes={notes}")
+
+    form_text = "\n".join(data_lines) if data_lines else "No form data."
+    review_text = "\n".join(review_lines) if review_lines else "No reviews."
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a GenAI governance analyst at Bessemer Trust. All three reviews are complete. "
+                        "Produce a concise executive summary (3-5 sentences) synthesizing the submission details "
+                        "and review findings. Highlight the overall recommendation trend, key risk areas, "
+                        "and readiness for final approval. Be specific and actionable. "
+                        "Do NOT use markdown formatting - output plain text only."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Submission data:\n{form_text}\n\nReview findings:\n{review_text}",
+                },
+            ],
+            max_tokens=300,
+            temperature=0.7,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"OpenAI review summary error: {e}")
+        return ""
 
 
 # --- AI REVIEW AGENT ---
@@ -215,16 +341,29 @@ def build_requestor_summary_email(submission: dict, review_url: str) -> str:
     else:
         biz_obj = html.escape(str(biz_obj))
 
+    # Generate AI summary
+    ai_summary = generate_ai_summary(submission, context="submission")
+    ai_summary_section = ""
+    if ai_summary:
+        safe_summary = html.escape(ai_summary)
+        ai_summary_section = f"""
+          <div style="margin-top: 20px; padding: 16px; background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border: 1px solid #bbf7d0; border-radius: 8px;">
+            <h3 style="font-size: 0.9rem; color: #166534; margin: 0 0 8px;">AI-Generated Executive Summary</h3>
+            <p style="font-size: 0.85rem; color: #1e293b; line-height: 1.6; margin: 0;">{safe_summary}</p>
+          </div>
+        """
+
     return f"""
     <html>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; padding: 20px;">
       <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-        <div style="background: linear-gradient(135deg, #1e3a5f, #1a56db); color: white; padding: 24px;">
+        <div style="background: linear-gradient(135deg, #1B6B3A, #145a2e); color: white; padding: 24px;">
           <h1 style="margin: 0; font-size: 1.3rem;">GenAI Review - New Submission</h1>
           <p style="margin: 4px 0 0; opacity: 0.85; font-size: 0.85rem;">A new review request has been submitted and requires your attention</p>
         </div>
         <div style="padding: 24px;">
-          <h2 style="font-size: 1rem; color: #1e293b; margin-bottom: 16px;">Submission Summary</h2>
+          {ai_summary_section}
+          <h2 style="font-size: 1rem; color: #1e293b; margin: 20px 0 16px;">Submission Details</h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
             <tr style="border-bottom: 1px solid #e2e8f0;">
               <td style="padding: 10px 0; font-weight: 600; color: #64748b; width: 160px;">Project Name</td>
@@ -256,7 +395,7 @@ def build_requestor_summary_email(submission: dict, review_url: str) -> str:
             </tr>
           </table>
           <div style="margin-top: 24px; text-align: center;">
-            <a href="{safe_review_url}" style="display: inline-block; background: linear-gradient(135deg, #0d9488, #0f766e); color: white; padding: 12px 32px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem;">Open Review Form</a>
+            <a href="{safe_review_url}" style="display: inline-block; background: linear-gradient(135deg, #1B6B3A, #145a2e); color: white; padding: 12px 32px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem;">Open Review Form</a>
           </div>
           <p style="margin-top: 16px; font-size: 0.78rem; color: #64748b; text-align: center;">
             Please review the submission and provide your compliance, legal, and security assessment.
@@ -289,21 +428,34 @@ def build_reviewer_summary_email(submission: dict, reviews: dict, approve_url: s
         </div>
         """
 
+    # Generate AI summary of all reviews
+    ai_summary = generate_review_summary(submission, reviews)
+    ai_summary_section = ""
+    if ai_summary:
+        safe_summary = html.escape(ai_summary)
+        ai_summary_section = f"""
+          <div style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, #faf5ff, #f5f3ff); border: 1px solid #e9d5ff; border-radius: 8px;">
+            <h3 style="font-size: 0.9rem; color: #6b21a8; margin: 0 0 8px;">AI-Generated Review Analysis</h3>
+            <p style="font-size: 0.85rem; color: #1e293b; line-height: 1.6; margin: 0;">{safe_summary}</p>
+          </div>
+        """
+
     return f"""
     <html>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; padding: 20px;">
       <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-        <div style="background: linear-gradient(135deg, #7e22ce, #6b21a8); color: white; padding: 24px;">
+        <div style="background: linear-gradient(135deg, #1B6B3A, #145a2e); color: white; padding: 24px;">
           <h1 style="margin: 0; font-size: 1.3rem;">GenAI Review - Ready for Approval</h1>
           <p style="margin: 4px 0 0; opacity: 0.85; font-size: 0.85rem;">All reviews are complete. Your approval is required.</p>
         </div>
         <div style="padding: 24px;">
+          {ai_summary_section}
           <h2 style="font-size: 1rem; color: #1e293b; margin-bottom: 8px;">Project: {project}</h2>
           <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 16px;">Business Unit: {business_unit} | Risk Tier: {risk_tier}</p>
-          <h3 style="font-size: 0.95rem; color: #1e293b; margin-bottom: 12px;">Review Summary</h3>
+          <h3 style="font-size: 0.95rem; color: #1e293b; margin-bottom: 12px;">Review Details</h3>
           {review_sections}
           <div style="margin-top: 24px; text-align: center;">
-            <a href="{safe_approve_url}" style="display: inline-block; background: linear-gradient(135deg, #7e22ce, #6b21a8); color: white; padding: 12px 32px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem;">Open Approval Form</a>
+            <a href="{safe_approve_url}" style="display: inline-block; background: linear-gradient(135deg, #1B6B3A, #145a2e); color: white; padding: 12px 32px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem;">Open Approval Form</a>
           </div>
         </div>
       </div>
@@ -321,6 +473,18 @@ def build_needs_info_email(submission: dict, agent_result: dict) -> str:
     missing_html = "".join(f"<li>{html.escape(f)}</li>" for f in missing)
     reason = html.escape(agent_result.get("reason", ""))
 
+    # Generate AI explanation of why info is needed
+    ai_summary = generate_ai_summary(form_data, context="needs_info")
+    ai_section = ""
+    if ai_summary:
+        safe_summary = html.escape(ai_summary)
+        ai_section = f"""
+          <div style="margin-bottom: 16px; padding: 16px; background: linear-gradient(135deg, #fffbeb, #fef3c7); border: 1px solid #fde68a; border-radius: 8px;">
+            <h3 style="font-size: 0.9rem; color: #92400e; margin: 0 0 8px;">AI Analysis</h3>
+            <p style="font-size: 0.85rem; color: #1e293b; line-height: 1.6; margin: 0;">{safe_summary}</p>
+          </div>
+        """
+
     return f"""
     <html>
     <body style="font-family: Georgia, serif; background: #F5F3EF; padding: 20px;">
@@ -330,6 +494,7 @@ def build_needs_info_email(submission: dict, agent_result: dict) -> str:
           <p style="margin: 4px 0 0; opacity: 0.85; font-size: 0.85rem;">Submission {sub_id}</p>
         </div>
         <div style="padding: 24px;">
+          {ai_section}
           <h2 style="font-size: 1rem; color: #1e293b;">Project: {project}</h2>
           <p style="font-size: 0.85rem; color: #64748b;">{reason}</p>
           <h3 style="font-size: 0.95rem; color: #1e293b;">Missing Information:</h3>
@@ -345,6 +510,7 @@ def build_needs_info_email(submission: dict, agent_result: dict) -> str:
 def build_agent_review_email(submission: dict, agent_result: dict) -> str:
     """Email to reviewer when submission is complete and ready for review."""
     summary = agent_result.get("summary", {})
+    form_data = submission.get("form_data", {})
     sub_id = html.escape(str(summary.get("submissionId", "N/A")))
     requestor = html.escape(str(summary.get("requestor", "N/A")))
     department = html.escape(str(summary.get("department", "N/A")))
@@ -356,6 +522,18 @@ def build_agent_review_email(submission: dict, agent_result: dict) -> str:
     reason = html.escape(str(summary.get("reason", "N/A")))
     review_url = html.escape(f"{FRONTEND_URL}?review={submission.get('id', '')}")
 
+    # Generate AI summary
+    ai_summary = generate_ai_summary(form_data, context="submission")
+    ai_section = ""
+    if ai_summary:
+        safe_summary = html.escape(ai_summary)
+        ai_section = f"""
+          <div style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border: 1px solid #bbf7d0; border-radius: 8px;">
+            <h3 style="font-size: 0.9rem; color: #166534; margin: 0 0 8px;">AI-Generated Executive Summary</h3>
+            <p style="font-size: 0.85rem; color: #1e293b; line-height: 1.6; margin: 0;">{safe_summary}</p>
+          </div>
+        """
+
     return f"""
     <html>
     <body style="font-family: Georgia, serif; background: #F5F3EF; padding: 20px;">
@@ -365,6 +543,7 @@ def build_agent_review_email(submission: dict, agent_result: dict) -> str:
           <p style="margin: 4px 0 0; opacity: 0.85; font-size: 0.85rem;">AI Agent has classified this submission as Ready for Review</p>
         </div>
         <div style="padding: 24px;">
+          {ai_section}
           <h2 style="font-size: 1rem; color: #1e293b; margin-bottom: 16px;">Structured Summary</h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
             <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 8px 0; font-weight: 600; color: #64748b; width: 150px;">Submission ID</td><td style="padding: 8px 0; color: #1e293b;">{sub_id}</td></tr>
@@ -689,11 +868,24 @@ async def approve_submission(submission_id: str, request: Request):
         safe_approver = html.escape(data.get("approverName", "N/A"))
         color = "#15803d" if data.get("decision") == "approved" else "#dc2626" if data.get("decision") == "rejected" else "#a16207"
 
+        # Generate AI summary for approval decision
+        approval_context = {**form_data, "decision": data.get("decision", ""), "approverName": data.get("approverName", ""), "conditions": data.get("conditions", "")}
+        ai_summary = generate_ai_summary(approval_context, context="approval")
+        ai_section = ""
+        if ai_summary:
+            safe_summary = html.escape(ai_summary)
+            ai_section = f"""
+              <div style="margin: 20px 24px 0; padding: 16px; background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border: 1px solid #bbf7d0; border-radius: 8px; text-align: left;">
+                <h3 style="font-size: 0.9rem; color: #166534; margin: 0 0 8px;">AI-Generated Decision Summary</h3>
+                <p style="font-size: 0.85rem; color: #1e293b; line-height: 1.6; margin: 0;">{safe_summary}</p>
+              </div>
+            """
+
         email_html = f"""
         <html>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; padding: 20px;">
           <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <div style="background: linear-gradient(135deg, #1e3a5f, #1a56db); color: white; padding: 24px;">
+            <div style="background: linear-gradient(135deg, #1B6B3A, #145a2e); color: white; padding: 24px;">
               <h1 style="margin: 0; font-size: 1.3rem;">GenAI Review - Decision Made</h1>
             </div>
             <div style="padding: 24px; text-align: center;">
@@ -703,6 +895,8 @@ async def approve_submission(submission_id: str, request: Request):
               </div>
               <p style="font-size: 0.85rem; color: #64748b;">Approved by: {safe_approver} on {now[:10]}</p>
             </div>
+            {ai_section}
+            <div style="padding: 0 24px 24px;"></div>
           </div>
         </body>
         </html>
