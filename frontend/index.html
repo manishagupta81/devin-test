@@ -76,6 +76,31 @@
     .submission-list { list-style: none; }
     .submission-list li { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
     .submission-list li:last-child { border-bottom: none; }
+
+    /* Kanban dashboard */
+    .filter-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 14px 0 18px; }
+    .filter-item { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+    .filter-item label { font-size: 0.8rem; color: var(--text-secondary); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .filter-item select { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: #fff; font-size: 0.9rem; }
+
+    .kanban-board { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 14px; align-items: start; }
+    @media (max-width: 1100px) { .kanban-board { grid-template-columns: repeat(2, minmax(220px, 1fr)); } }
+    @media (max-width: 640px) { .kanban-board { grid-template-columns: 1fr; } }
+
+    .kanban-col { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .kanban-col-header { padding: 12px 14px; background: linear-gradient(135deg, #F5F3EF, #E8EBE4); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: baseline; }
+    .kanban-col-header h4 { margin: 0; font-size: 0.9rem; color: var(--bessemer-green-dark); }
+    .kanban-count { font-size: 0.8rem; color: var(--text-secondary); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .kanban-col-body { padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+
+    .kanban-card { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: #fff; cursor: pointer; transition: box-shadow 120ms ease, transform 120ms ease; }
+    .kanban-card:hover { box-shadow: 0 8px 18px rgba(0,0,0,0.08); transform: translateY(-1px); }
+    .kanban-title { font-size: 0.92rem; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+    .kanban-meta { font-size: 0.78rem; color: var(--text-secondary); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.35; }
+    .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.02em; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; border: 1px solid var(--border); }
+    .pill-high { background: #fee2e2; color: #991b1b; }
+    .pill-medium { background: #fef3c7; color: #92400e; }
+    .pill-low { background: #d1fae5; color: #065f46; }
     .status-badge { padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
     .status-submitted { background: #dbeafe; color: #1e40af; }
     .status-reviewed { background: #fef3c7; color: #92400e; }
@@ -126,11 +151,37 @@
     <!-- DASHBOARD VIEW -->
     <div id="dashboardView" class="active">
       <div class="dashboard-panel">
-        <h3>All Submissions</h3>
-        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:16px; font-family:-apple-system,sans-serif;">Click a submission to view details.</p>
-        <ul class="submission-list" id="submissionList">
-          <li style="color:var(--text-secondary); font-family:-apple-system,sans-serif; font-size:0.9rem;">Loading submissions...</li>
-        </ul>
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+          <div>
+            <h3>Workflow Board</h3>
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:0; font-family:-apple-system,sans-serif;">Kanban view grouped by workflow lane. Click a card to open Reviewer / Approver view.</p>
+          </div>
+          <button class="mode-btn" style="padding:10px 14px;" onclick="loadSubmissions()">Refresh</button>
+        </div>
+
+        <div class="filter-row">
+          <div class="filter-item">
+            <label for="filterDepartment">Department</label>
+            <select id="filterDepartment"><option value="">All</option></select>
+          </div>
+          <div class="filter-item">
+            <label for="filterPriority">Priority</label>
+            <select id="filterPriority">
+              <option value="">All</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label for="filterLane">Lane</label>
+            <select id="filterLane"><option value="">All</option></select>
+          </div>
+        </div>
+
+        <div class="kanban-board" id="kanbanBoard">
+          <div style="color:var(--text-secondary); font-family:-apple-system,sans-serif; font-size:0.9rem;">Loading submissions...</div>
+        </div>
       </div>
       <button class="btn-submit" onclick="setMode('form')" style="margin-top:16px;">+ New Submission</button>
     </div>
@@ -732,22 +783,206 @@
       return data;
     }
 
-    // LOAD SUBMISSIONS
+    // LOAD SUBMISSIONS (KANBAN)
+    let allSubmissions = [];
+    const KANBAN_LANES = [
+      { key: 'needs_info', label: 'Needs Info' },
+      { key: 'ready_for_review', label: 'Ready for Review' },
+      { key: 'approved', label: 'Approved' },
+      { key: 'rejected', label: 'Rejected' }
+    ];
+
+    function normalizeLane(item) {
+      const raw = String(item && (item.workflow_lane || item.status || 'submitted') || 'submitted').toLowerCase();
+      const v = raw.replace(/[^a-z0-9_-]/g, '');
+      if (v === 'needsinfo') return 'needs_info';
+      if (v === 'readyforreview') return 'ready_for_review';
+      if (v === 'reviewed' || v === 'submitted') return 'ready_for_review';
+      if (v === 'conditional') return 'approved';
+      if (['needs_info', 'ready_for_review', 'approved', 'rejected'].includes(v)) return v;
+      return 'ready_for_review';
+    }
+
+    function priorityClass(p) {
+      const v = String(p || '').toLowerCase();
+      if (v === 'high') return 'pill pill-high';
+      if (v === 'low') return 'pill pill-low';
+      return 'pill pill-medium';
+    }
+
+    function setSelectOptions(selectEl, values) {
+      if (!selectEl) return;
+      const prev = selectEl.value;
+      const keep = new Set();
+
+      const base = document.createElement('option');
+      base.value = '';
+      base.textContent = 'All';
+
+      selectEl.innerHTML = '';
+      selectEl.appendChild(base);
+
+      values.forEach(v => {
+        const val = typeof v === 'string' ? v : v.value;
+        const label = typeof v === 'string' ? v : v.label;
+        if (!val) return;
+
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label || val;
+        selectEl.appendChild(opt);
+        keep.add(val);
+      });
+
+      if (keep.has(prev)) selectEl.value = prev;
+    }
+
+    function populateFilters(items) {
+      const dept = Array.from(new Set(items.map(i => i.department).filter(Boolean))).sort();
+      setSelectOptions(document.getElementById('filterDepartment'), dept);
+
+      // Lane select from canonical lanes
+      setSelectOptions(
+        document.getElementById('filterLane'),
+        KANBAN_LANES.map(l => ({ value: l.key, label: l.label }))
+      );
+    }
+
+    function getFilters() {
+      return {
+        department: document.getElementById('filterDepartment')?.value || '',
+        priority: document.getElementById('filterPriority')?.value || '',
+        lane: document.getElementById('filterLane')?.value || ''
+      };
+    }
+
+    function openSubmissionFromDashboard(item) {
+      const id = item && item.id ? String(item.id) : '';
+      if (!id) return;
+      const status = String(item.status || '').toLowerCase();
+      const lane = normalizeLane(item);
+
+      // clear query params so user doesn't get "stuck" in deep links
+      window.history.replaceState({}, '', window.location.pathname);
+
+      if (status === 'reviewed' || lane === 'approved' || lane === 'rejected' || ['approved', 'rejected', 'conditional'].includes(status)) {
+        setMode('approve');
+        document.getElementById('approveSubId').value = id;
+        loadApproval();
+      } else {
+        setMode('review');
+        document.getElementById('reviewSubId').value = id;
+        loadReview();
+      }
+    }
+
+    function renderKanban(items) {
+      const board = document.getElementById('kanbanBoard');
+      if (!board) return;
+
+      const f = getFilters();
+      const filtered = items.filter(i => {
+        const deptOk = !f.department || String(i.department || '') === f.department;
+        const priOk = !f.priority || String(i.priority || '') === f.priority;
+        const laneKey = normalizeLane(i);
+        const laneOk = !f.lane || laneKey === f.lane;
+        return deptOk && priOk && laneOk;
+      });
+
+      const visibleLanes = f.lane ? KANBAN_LANES.filter(l => l.key === f.lane) : KANBAN_LANES;
+
+      board.innerHTML = '';
+      if (!filtered.length) {
+        const msg = document.createElement('div');
+        msg.style.color = 'var(--text-secondary)';
+        msg.style.fontFamily = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
+        msg.style.fontSize = '0.9rem';
+        msg.textContent = 'No submissions match the current filters.';
+        board.appendChild(msg);
+        return;
+      }
+
+      visibleLanes.forEach(lane => {
+        const laneItems = filtered.filter(i => normalizeLane(i) === lane.key);
+
+        const col = document.createElement('div');
+        col.className = 'kanban-col';
+
+        const header = document.createElement('div');
+        header.className = 'kanban-col-header';
+        const h = document.createElement('h4');
+        h.textContent = lane.label;
+        const count = document.createElement('div');
+        count.className = 'kanban-count';
+        count.textContent = String(laneItems.length);
+        header.appendChild(h);
+        header.appendChild(count);
+
+        const body = document.createElement('div');
+        body.className = 'kanban-col-body';
+
+        if (!laneItems.length) {
+          const empty = document.createElement('div');
+          empty.className = 'kanban-meta';
+          empty.textContent = 'No items';
+          body.appendChild(empty);
+        } else {
+          laneItems.forEach(i => {
+            const card = document.createElement('div');
+            card.className = 'kanban-card';
+            card.addEventListener('click', () => openSubmissionFromDashboard(i));
+
+            const title = document.createElement('div');
+            title.className = 'kanban-title';
+            title.textContent = String(i.projectName || 'Untitled');
+
+            const meta = document.createElement('div');
+            meta.className = 'kanban-meta';
+            const idLine = document.createElement('div');
+            idLine.textContent = `ID: ${String(i.submission_id || i.id || '')}`;
+            const deptLine = document.createElement('div');
+            deptLine.textContent = `Dept: ${String(i.department || i.businessUnit || 'N/A')}`;
+
+            const priWrap = document.createElement('div');
+            const pri = document.createElement('span');
+            pri.className = priorityClass(i.priority || 'Medium');
+            pri.textContent = String(i.priority || 'Medium');
+            priWrap.appendChild(pri);
+
+            meta.appendChild(idLine);
+            meta.appendChild(deptLine);
+            meta.appendChild(priWrap);
+
+            card.appendChild(title);
+            card.appendChild(meta);
+            body.appendChild(card);
+          });
+        }
+
+        col.appendChild(header);
+        col.appendChild(body);
+        board.appendChild(col);
+      });
+    }
+
     async function loadSubmissions() {
+      const board = document.getElementById('kanbanBoard');
       try {
         const res = await fetch(API_URL + '/api/submissions');
         const items = await res.json();
-        const list = document.getElementById('submissionList');
-        if (!items.length) {
-          list.innerHTML = '<li style="color:var(--text-secondary);font-family:-apple-system,sans-serif;font-size:0.9rem;">No submissions yet. Create one to get started.</li>';
-          return;
-        }
-        list.innerHTML = items.map(s => {
-          const statusClass = 'status-' + (s.status || 'submitted');
-          return '<li><div><strong style="font-family:-apple-system,sans-serif;">' + escapeHtml(s.projectName || 'Untitled') + '</strong><br><span style="font-size:0.8rem;color:var(--text-secondary);font-family:-apple-system,sans-serif;">' + escapeHtml(s.businessUnit || '') + ' | ' + escapeHtml(s.requestType || '') + ' | ID: ' + escapeHtml(s.id.substring(0,8)) + '...</span></div><span class="status-badge ' + statusClass + '">' + escapeHtml((s.status || 'submitted').toUpperCase()) + '</span></li>';
-        }).join('');
+        allSubmissions = Array.isArray(items) ? items : [];
+        populateFilters(allSubmissions);
+        renderKanban(allSubmissions);
       } catch(e) {
-        document.getElementById('submissionList').innerHTML = '<li style="color:#dc2626;font-family:-apple-system,sans-serif;">Error loading submissions. Is the backend running?</li>';
+        if (board) {
+          board.innerHTML = '';
+          const err = document.createElement('div');
+          err.style.color = '#dc2626';
+          err.style.fontFamily = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
+          err.style.fontSize = '0.9rem';
+          err.textContent = 'Error loading submissions. Is the backend running?';
+          board.appendChild(err);
+        }
       }
     }
 
@@ -880,6 +1115,17 @@
 
     // URL PARAM HANDLING
     window.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('filterDepartment')?.addEventListener('change', () => renderKanban(allSubmissions));
+      document.getElementById('filterPriority')?.addEventListener('change', () => renderKanban(allSubmissions));
+      document.getElementById('filterLane')?.addEventListener('change', () => renderKanban(allSubmissions));
+
+      // Auto-refresh dashboard while visible
+      setInterval(() => {
+        if (document.getElementById('dashboardView')?.classList.contains('active')) {
+          loadSubmissions();
+        }
+      }, 30000);
+
       const params = new URLSearchParams(window.location.search);
       if (params.get('review')) {
         setMode('review');
