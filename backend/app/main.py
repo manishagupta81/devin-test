@@ -208,7 +208,7 @@ async def create_submission(request: Request):
     table.put_item(Item=item)
 
     # Send email to reviewer
-    review_url = f"{FRONTEND_URL}/review/{submission_id}"
+    review_url = f"{FRONTEND_URL}?review={submission_id}"
     email_html = build_requestor_summary_email(data, review_url)
     send_email(
         subject=f"GenAI Review Request: {data.get('projectName', 'New Submission')}",
@@ -296,7 +296,7 @@ async def submit_review(submission_id: str, review_type: str, request: Request):
             ExpressionAttributeValues={":s": "reviewed", ":u": now},
         )
 
-        approve_url = f"{FRONTEND_URL}/approve/{submission_id}"
+        approve_url = f"{FRONTEND_URL}?approve={submission_id}"
         form_data = item.get("form_data", {})
         email_html = build_reviewer_summary_email(form_data, reviews, approve_url)
         send_email(
