@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GenAI Review Governance - Bessemer Trust</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bessemer-green: #1B6B3A;
+      --bessemer-green-dark: #0F4A26;
+      --bessemer-gold: #B8860B;
+      --bessemer-cream: #F5F3EF;
+      --bessemer-sage: #E8EBE4;
+      --bg: #FAFAF8;
+      --card: #ffffff;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --border: #d4d4d4;
+      --danger: #dc2626;
+      --radius: 8px;
+    }
+    body { font-family: 'Georgia', 'Times New Roman', serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    .dashboard-header { background: linear-gradient(135deg, var(--bessemer-green-dark) 0%, var(--bessemer-green) 100%); color: white; padding: 24px 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .dashboard-header h1 { font-size: 1.6rem; font-weight: 600; }
+    .dashboard-header p { font-size: 0.9rem; opacity: 0.9; margin-top: 6px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .tab-bar { background: var(--card); border-bottom: 2px solid var(--border); display: flex; overflow-x: auto; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .tab-btn { display: flex; align-items: center; gap: 8px; padding: 14px 18px; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; transition: all 0.2s; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin-bottom: -2px; }
+    .tab-btn:hover { color: var(--bessemer-green); background: var(--bessemer-sage); }
+    .tab-btn.active { color: var(--bessemer-green); border-bottom-color: var(--bessemer-gold); background: var(--bessemer-cream); }
+    .container { max-width: 1000px; margin: 0 auto; padding: 32px 20px 100px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .panel-header { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; padding: 20px 28px; border-bottom: 3px solid var(--bessemer-green); }
+    .panel-header h2 { font-size: 1.15rem; font-weight: 600; color: var(--bessemer-green-dark); }
+    .panel-header .panel-subtitle { font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .panel-body { background: var(--card); border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); padding: 28px; }
+    .tab-nav-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .btn-nav { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; font-size: 0.9rem; font-weight: 600; border: 2px solid var(--bessemer-green); border-radius: 6px; cursor: pointer; background: white; color: var(--bessemer-green); transition: all 0.2s; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .btn-nav:hover { background: var(--bessemer-green); color: white; }
+    .btn-nav:disabled { opacity: 0.3; cursor: not-allowed; }
+    .btn-nav-primary { background: var(--bessemer-green); color: white; }
+    .btn-nav-primary:hover { background: var(--bessemer-green-dark); }
+    .field-group { margin-bottom: 18px; }
+    .field-group label { display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 8px; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .field-group label .req { color: var(--danger); margin-left: 2px; }
+    input[type="text"], input[type="date"], input[type="email"], textarea, select { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: white; color: var(--text); transition: border-color 0.2s, box-shadow 0.2s; }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--bessemer-green); box-shadow: 0 0 0 3px rgba(27, 107, 58, 0.1); }
+    textarea { resize: vertical; min-height: 80px; }
+    .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+    .checkbox-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 6px; transition: background 0.15s; cursor: pointer; }
+    .checkbox-item:hover { background: var(--bessemer-sage); }
+    .checkbox-item input[type="checkbox"] { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--bessemer-green); cursor: pointer; flex-shrink: 0; }
+    .checkbox-item span { font-size: 0.88rem; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .radio-group { display: flex; flex-direction: column; gap: 8px; }
+    .radio-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; transition: background 0.15s; }
+    .radio-item:hover { background: var(--bessemer-sage); }
+    .radio-item input[type="radio"] { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--bessemer-green); cursor: pointer; flex-shrink: 0; }
+    .radio-item span { font-size: 0.88rem; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 640px) { .row { grid-template-columns: 1fr; } .checkbox-grid { grid-template-columns: 1fr; } }
+    .subsection { margin-top: 28px; padding-top: 24px; border-top: 1px dashed var(--border); }
+    .subsection-title { font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: var(--bessemer-green-dark); }
+    .btn-submit { background: linear-gradient(135deg, var(--bessemer-green), var(--bessemer-green-dark)); color: white; border: none; padding: 16px 56px; font-size: 1.05rem; font-weight: 700; border-radius: var(--radius); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(27, 107, 58, 0.3); }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--bessemer-green); color: white; padding: 16px 28px; border-radius: var(--radius); font-size: 0.95rem; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.2); transform: translateY(100px); opacity: 0; transition: all 0.3s ease; z-index: 200; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .submit-area { text-align: center; margin-top: 32px; padding: 40px 24px; background: var(--bessemer-cream); border-radius: var(--radius); border: 1px solid var(--border); }
+    .submit-area p { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .review-type-selector { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    .review-type-btn { padding: 10px 20px; border: 2px solid var(--bessemer-green); border-radius: 6px; background: white; color: var(--bessemer-green); font-weight: 600; cursor: pointer; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; transition: all 0.2s; }
+    .review-type-btn.active { background: var(--bessemer-green); color: white; }
+    .review-type-btn:hover { background: var(--bessemer-green); color: white; }
+    .dashboard-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+    .dashboard-panel h3 { color: var(--bessemer-green-dark); margin-bottom: 12px; }
+    .submission-list { list-style: none; }
+    .submission-list li { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .submission-list li:last-child { border-bottom: none; }
+
+    /* Kanban dashboard */
+    .filter-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 14px 0 18px; }
+    .filter-item { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+    .filter-item label { font-size: 0.8rem; color: var(--text-secondary); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .filter-item select { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: #fff; font-size: 0.9rem; }
+
+    .kanban-board { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 14px; align-items: start; }
+    @media (max-width: 1100px) { .kanban-board { grid-template-columns: repeat(2, minmax(220px, 1fr)); } }
+    @media (max-width: 640px) { .kanban-board { grid-template-columns: 1fr; } }
+
+    .kanban-col { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .kanban-col-header { padding: 12px 14px; background: linear-gradient(135deg, #F5F3EF, #E8EBE4); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: baseline; }
+    .kanban-col-header h4 { margin: 0; font-size: 0.9rem; color: var(--bessemer-green-dark); }
+    .kanban-count { font-size: 0.8rem; color: var(--text-secondary); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .kanban-col-body { padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+
+    .kanban-card { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: #fff; cursor: pointer; transition: box-shadow 120ms ease, transform 120ms ease; }
+    .kanban-card:hover { box-shadow: 0 8px 18px rgba(0,0,0,0.08); transform: translateY(-1px); }
+    .kanban-title { font-size: 0.92rem; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+    .kanban-meta { font-size: 0.78rem; color: var(--text-secondary); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.35; }
+    .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.02em; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; border: 1px solid var(--border); }
+    .pill-high { background: #fee2e2; color: #991b1b; }
+    .pill-medium { background: #fef3c7; color: #92400e; }
+    .pill-low { background: #d1fae5; color: #065f46; }
+    .status-badge { padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .status-submitted { background: #dbeafe; color: #1e40af; }
+    .status-reviewed { background: #fef3c7; color: #92400e; }
+    .status-approved { background: #dcfce7; color: #15803d; }
+    .status-rejected { background: #fee2e2; color: #991b1b; }
+    .status-conditional { background: #fef3c7; color: #92400e; }
+    .mode-selector { display: flex; gap: 12px; margin: 20px 0; }
+    .mode-btn { padding: 12px 28px; border: 2px solid var(--bessemer-gold); border-radius: 6px; background: white; color: var(--bessemer-green-dark); font-weight: 700; cursor: pointer; font-size: 0.95rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; transition: all 0.2s; }
+    .mode-btn.active { background: var(--bessemer-gold); color: white; }
+    .mode-btn:hover { background: var(--bessemer-gold); color: white; }
+    #dashboardView, #formView, #reviewView, #approveView { display: none; }
+    #dashboardView.active, #formView.active, #reviewView.active, #approveView.active { display: block; }
+    .risk-category { margin-bottom: 20px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .risk-cat-header { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .risk-cat-header h3 { font-size: 0.88rem; font-weight: 700; }
+    .cat-model { background: #dbeafe; }
+    .cat-model h3 { color: #1e40af; }
+    .cat-security { background: #fef3c7; }
+    .cat-security h3 { color: #92400e; }
+    .cat-strategic { background: #fce7f3; }
+    .cat-strategic h3 { color: #9d174d; }
+    .cat-ethical { background: #ede9fe; }
+    .cat-ethical h3 { color: #5b21b6; }
+    .cat-legal { background: #fee2e2; }
+    .cat-legal h3 { color: #991b1b; }
+    .risk-cat-body { padding: 0 16px 16px; }
+
+    /* Collapsible sections */
+    .collapsible-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: linear-gradient(135deg, var(--bessemer-cream), #E8EBE4); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; user-select: none; transition: all 0.2s; margin-bottom: 0; }
+    .collapsible-header:hover { background: linear-gradient(135deg, #E8EBE4, #d4d9cf); }
+    .collapsible-header h3 { margin: 0; font-size: 0.95rem; color: var(--bessemer-green-dark); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; align-items: center; gap: 10px; }
+    .collapsible-header .chevron { display: inline-block; transition: transform 0.3s ease; font-size: 0.8rem; color: var(--text-secondary); }
+    .collapsible-header.open .chevron { transform: rotate(180deg); }
+    .collapsible-header.open { border-radius: var(--radius) var(--radius) 0 0; margin-bottom: 0; }
+    .collapsible-body { overflow: hidden; transition: max-height 0.35s ease, opacity 0.25s ease; max-height: 0; opacity: 0; }
+    .collapsible-body.open { max-height: 5000px; opacity: 1; }
+    .collapsible-body > .collapsible-inner { border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); padding: 0; background: var(--card); }
+    .risk-row { display: grid; grid-template-columns: 1fr 180px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.82rem; }
+    .risk-row:last-child { border-bottom: none; }
+    .risk-row select { padding: 6px 8px; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-header">
+    <h1>GenAI Review Governance</h1>
+    <p>Bessemer Trust | Comprehensive AI Risk Assessment &amp; Approval Workflow</p>
+  </div>
+
+  <div class="container">
+    <!-- MODE SELECTOR -->
+    <div class="mode-selector">
+      <button class="mode-btn active" onclick="setMode('dashboard')">Dashboard</button>
+      <button class="mode-btn" onclick="setMode('form')">New Submission</button>
+      <button class="mode-btn" onclick="setMode('review')">Reviewer</button>
+      <button class="mode-btn" onclick="setMode('approve')">Approver</button>
+    </div>
+
+    <!-- DASHBOARD VIEW -->
+    <div id="dashboardView" class="active">
+      <div class="dashboard-panel">
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+          <div>
+            <h3>Workflow Board</h3>
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:0; font-family:-apple-system,sans-serif;">Kanban view grouped by workflow lane. Click a card to open Reviewer / Approver view.</p>
+          </div>
+          <button class="mode-btn" style="padding:10px 14px;" onclick="loadSubmissions()">Refresh</button>
+        </div>
+
+        <div class="filter-row">
+          <div class="filter-item">
+            <label for="filterDepartment">Department</label>
+            <select id="filterDepartment"><option value="">All</option></select>
+          </div>
+          <div class="filter-item">
+            <label for="filterPriority">Priority</label>
+            <select id="filterPriority">
+              <option value="">All</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label for="filterLane">Lane</label>
+            <select id="filterLane"><option value="">All</option></select>
+          </div>
+        </div>
+
+        <div class="kanban-board" id="kanbanBoard">
+          <div style="color:var(--text-secondary); font-family:-apple-system,sans-serif; font-size:0.9rem;">Loading submissions...</div>
+        </div>
+      </div>
+      <button class="btn-submit" onclick="setMode('form')" style="margin-top:16px;">+ New Submission</button>
+    </div>
+
+    <!-- FORM VIEW (Requestor Tabs 0-6) -->
+    <div id="formView">
+      <div class="tab-bar" style="position:relative; margin-bottom:20px; border-radius:var(--radius);">
+        <button class="tab-btn active" onclick="switchTab(0)">0 Snapshot</button>
+        <button class="tab-btn" onclick="switchTab(1)">1 Use Case</button>
+        <button class="tab-btn" onclick="switchTab(2)">2 Classification</button>
+        <button class="tab-btn" onclick="switchTab(3)">3 Custom GPT</button>
+        <button class="tab-btn" onclick="switchTab(4)">4 Vendor Tool</button>
+        <button class="tab-btn" onclick="switchTab(5)">5 IP</button>
+        <button class="tab-btn" onclick="switchTab(6)">6 Workforce</button>
+      </div>
+
+      <form id="genaiForm">
+        <!-- TAB 0: SNAPSHOT -->
+        <div class="tab-panel active" id="tab0">
+          <div class="panel-header"><h2>Section 0 &mdash; Snapshot</h2><div class="panel-subtitle">All Submissions</div></div>
+          <div class="panel-body">
+            <div class="field-group">
+              <label>Solution Type <span class="req">*</span></label>
+              <div class="radio-group">
+                <label class="radio-item"><input type="radio" name="solutionType" value="optionA"><span>Option A: Custom GPT (Firm-Built Model)</span></label>
+                <label class="radio-item"><input type="radio" name="solutionType" value="optionB"><span>Option B: Vendor Tool (External SaaS / Third-Party AI Platform)</span></label>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>Request Type <span class="req">*</span></label>
+              <div class="radio-group">
+                <label class="radio-item"><input type="radio" name="requestType" value="poc"><span>Proof of Concept (POC)</span></label>
+                <label class="radio-item"><input type="radio" name="requestType" value="pilot"><span>Pilot</span></label>
+                <label class="radio-item"><input type="radio" name="requestType" value="implementation"><span>Implementation</span></label>
+                <label class="radio-item"><input type="radio" name="requestType" value="newUseCase"><span>New Use Case / Material Change</span></label>
+              </div>
+            </div>
+            <div class="row">
+              <div class="field-group"><label>Project Name <span class="req">*</span></label><input type="text" name="projectName"></div>
+              <div class="field-group"><label>Business Unit <span class="req">*</span></label><input type="text" name="businessUnit"></div>
+            </div>
+            <div class="row">
+              <div class="field-group"><label>Business Sponsor <span class="req">*</span></label><input type="text" name="businessSponsor"></div>
+              <div class="field-group"><label>Executive Sponsor <span class="req">*</span></label><input type="text" name="executiveSponsor"></div>
+            </div>
+            <div class="row">
+              <div class="field-group"><label>Business Owner <span class="req">*</span></label><input type="text" name="businessOwner"></div>
+              <div class="field-group"><label>Technical Owner <span class="req">*</span></label><input type="text" name="technicalOwner"></div>
+            </div>
+            <div class="row">
+              <div class="field-group"><label>Submission Date <span class="req">*</span></label><input type="date" name="submissionDate"></div>
+              <div class="field-group"><label>Target Go-Live Date</label><input type="date" name="goLiveDate"></div>
+            </div>
+            <div class="field-group">
+              <label>Business Objective <span class="req">*</span></label>
+              <div class="checkbox-grid">
+                <label class="checkbox-item"><input type="checkbox" name="bizObj" value="revenue"><span>Revenue generation</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="bizObj" value="cost"><span>Cost reduction</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="bizObj" value="risk"><span>Risk mitigation</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="bizObj" value="clientExp"><span>Client experience</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="bizObj" value="productivity"><span>Productivity</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="tab-nav-footer">
+            <button type="button" class="btn-nav" disabled>&larr; Previous</button>
+            <span style="font-family:-apple-system,sans-serif;font-size:0.85rem;">Tab 1 of 7</span>
+            <button type="button" class="btn-nav btn-nav-primary" onclick="switchTab(1)">Next &rarr;</button>
+          </div>
+        </div>
+
+        <!-- TAB 1: USE CASE -->
+        <div class="tab-panel" id="tab1">
+          <div class="panel-header"><h2>Section 1 &mdash; Use Case &amp; Workflow Clarity</h2><div class="panel-subtitle">All Submissions</div></div>
+          <div class="panel-body">
+            <div class="subsection-title">Describe End-to-End Workflow</div>
+            <div class="field-group"><label>Trigger</label><textarea name="wfTrigger" rows="2"></textarea></div>
+            <div class="field-group"><label>Inputs</label><textarea name="wfInputs" rows="2"></textarea></div>
+            <div class="field-group"><label>Processing</label><textarea name="wfProcessing" rows="2"></textarea></div>
+            <div class="field-group"><label>Outputs</label><textarea name="wfOutputs" rows="2"></textarea></div>
+            <div class="subsection">
+              <div class="subsection-title">Output Types Produced</div>
+              <div class="checkbox-grid">
+                <label class="checkbox-item"><input type="checkbox" name="outputType" value="text"><span>Text</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="outputType" value="summary"><span>Summary</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="outputType" value="code"><span>Code</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="outputType" value="decision"><span>Decision recommendation</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="outputType" value="image"><span>Image / media</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="outputType" value="score"><span>Scoring / ranking</span></label>
+              </div>
+            </div>
+            <div class="subsection">
+              <div class="subsection-title">Users &amp; Access</div>
+              <div class="field-group"><label>Exact audience and estimated count</label><input type="text" name="audienceCount"></div>
+              <div class="field-group"><label>User add/remove process</label><textarea name="userAddRemove" rows="2"></textarea></div>
+              <div class="field-group">
+                <label>Decision support level</label>
+                <div class="radio-group">
+                  <label class="radio-item"><input type="radio" name="decisionSupport" value="advisory"><span>Advisory only (human decides)</span></label>
+                  <label class="radio-item"><input type="radio" name="decisionSupport" value="semiAuto"><span>Semi-automated (human in the loop)</span></label>
+                  <label class="radio-item"><input type="radio" name="decisionSupport" value="fullyAuto"><span>Fully automated (no human review)</span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-nav-footer">
+            <button type="button" class="btn-nav" onclick="switchTab(0)">&larr; Previous</button>
+            <span style="font-family:-apple-system,sans-serif;font-size:0.85rem;">Tab 2 of 7</span>
+            <button type="button" class="btn-nav btn-nav-primary" onclick="switchTab(2)">Next &rarr;</button>
+          </div>
+        </div>
+
+        <!-- TAB 2: CLASSIFICATION -->
+        <div class="tab-panel" id="tab2">
+          <div class="panel-header"><h2>Section 2 &mdash; AI System Classification</h2><div class="panel-subtitle">All Submissions</div></div>
+          <div class="panel-body">
+            <div class="field-group">
+              <label>AI Type</label>
+              <div class="checkbox-grid">
+                <label class="checkbox-item"><input type="checkbox" name="aiType" value="traditionalML"><span>Traditional ML</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="aiType" value="genAI"><span>Generative AI (LLM)</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="aiType" value="hybrid"><span>Hybrid</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="aiType" value="rpa"><span>RPA / Rule-Based</span></label>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>Risk Tier <span class="req">*</span></label>
+              <div class="radio-group">
+                <label class="radio-item"><input type="radio" name="riskTier" value="tier1"><span>Tier 1: High Risk &mdash; client-facing, regulated, autonomous</span></label>
+                <label class="radio-item"><input type="radio" name="riskTier" value="tier2"><span>Tier 2: Medium Risk &mdash; internal, some sensitive data</span></label>
+                <label class="radio-item"><input type="radio" name="riskTier" value="tier3"><span>Tier 3: Low Risk &mdash; internal productivity, no sensitive data</span></label>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>Risk Characteristics (select all that apply)</label>
+              <div class="checkbox-grid">
+                <label class="checkbox-item"><input type="checkbox" name="riskChar" value="clientFacing"><span>Client-facing</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="riskChar" value="regulatedDecision"><span>Regulated decision</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="riskChar" value="sensitiveData"><span>Sensitive / PII data</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="riskChar" value="highAutonomy"><span>High autonomy</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="riskChar" value="financialImpact"><span>Material financial impact</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="riskChar" value="reputational"><span>Reputational risk</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="tab-nav-footer">
+            <button type="button" class="btn-nav" onclick="switchTab(1)">&larr; Previous</button>
+            <span style="font-family:-apple-system,sans-serif;font-size:0.85rem;">Tab 3 of 7</span>
+            <button type="button" class="btn-nav btn-nav-primary" onclick="switchTab(3)">Next &rarr;</button>
+          </div>
+        </div>
+
+        <!-- TAB 3: CUSTOM GPT -->
+        <div class="tab-panel" id="tab3">
+          <div class="panel-header"><h2>Option A &mdash; Custom GPT (Firm-Built Model)</h2><div class="panel-subtitle">Complete if Option A selected</div></div>
+          <div class="panel-body">
+            <div class="row">
+              <div class="field-group"><label>Model Name</label><input type="text" name="a1ModelName"></div>
+              <div class="field-group"><label>Base Model</label><input type="text" name="a1BaseModel"></div>
+            </div>
+            <div class="row">
+              <div class="field-group"><label>Model Version</label><input type="text" name="a1ModelVersion"></div>
+              <div class="field-group"><label>Hosting Environment</label><input type="text" name="a1Hosting"></div>
+            </div>
+            <div class="field-group"><label>Architecture Description</label><textarea name="a1Architecture" rows="3"></textarea></div>
+            <div class="field-group"><label>Training Data Sources</label><textarea name="a1TrainingData" rows="3"></textarea></div>
+            <div class="subsection">
+              <div class="subsection-title">Knowledge Governance</div>
+              <div class="field-group"><label>Data classification of training data</label><input type="text" name="a1DataClassification"></div>
+              <div class="field-group"><label>Data retention policy</label><textarea name="a1DataRetention" rows="2"></textarea></div>
+            </div>
+            <div class="subsection">
+              <div class="subsection-title">Accuracy &amp; Performance</div>
+              <div class="field-group"><label>Accuracy metrics and benchmarks</label><textarea name="a1Accuracy" rows="2"></textarea></div>
+              <div class="field-group"><label>Hallucination mitigation approach</label><textarea name="a1Hallucination" rows="2"></textarea></div>
+            </div>
+          </div>
+          <div class="tab-nav-footer">
+            <button type="button" class="btn-nav" onclick="switchTab(2)">&larr; Previous</button>
+            <span style="font-family:-apple-system,sans-serif;font-size:0.85rem;">Tab 4 of 7</span>
+            <button type="button" class="btn-nav btn-nav-primary" onclick="switchTab(4)">Next &rarr;</button>
+          </div>
+        </div>
+
+        <!-- TAB 4: VENDOR TOOL -->
+        <div class="tab-panel" id="tab4">
+          <div class="panel-header"><h2>Option B &mdash; Vendor Tool (External SaaS / Platform)</h2><div class="panel-subtitle">Complete if Option B selected</div></div>
+          <div class="panel-body">
+            <div class="row">
+              <div class="field-group"><label>Vendor Name <span class="req">*</span></label><input type="text" name="b1VendorName"></div>
+              <div class="field-group"><label>Product Name</label><input type="text" name="b1ProductName"></div>
+            </div>
+            <div class="row">
+              <div class="field-group"><label>Underlying Model</label><input type="text" name="b1UnderlyingModel"></div>
+              <div class="field-group"><label>Access Mode (API / Web / Embedded)</label><input type="text" name="b1AccessMode"></div>
+            </div>
+            <div class="field-group"><label>Contract Status</label><input type="text" name="b1ContractStatus"></div>
+            <div class="field-group"><label>Vendor Security Assessment Status</label><textarea name="b1SecurityAssessment" rows="2"></textarea></div>
+            <div class="subsection">
+              <div class="subsection-title">Data Handling</div>
+              <div class="field-group"><label>Where is data processed / stored?</label><textarea name="b1DataLocation" rows="2"></textarea></div>
+              <div class="field-group"><label>Vendor data retention policy</label><textarea name="b1VendorRetention" rows="2"></textarea></div>
+              <div class="field-group"><label>Does vendor use your data to train models?</label>
+                <div class="radio-group">
+                  <label class="radio-item"><input type="radio" name="b1TrainOnData" value="yes"><span>Yes</span></label>
+                  <label class="radio-item"><input type="radio" name="b1TrainOnData" value="no"><span>No</span></label>
+                  <label class="radio-item"><input type="radio" name="b1TrainOnData" value="unknown"><span>Unknown</span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-nav-footer">
+            <button type="button" class="btn-nav" onclick="switchTab(3)">&larr; Previous</button>
+            <span style="font-family:-apple-system,sans-serif;font-size:0.85rem;">Tab 5 of 7</span>
+            <button type="button" class="btn-nav btn-nav-primary" onclick="switchTab(5)">Next &rarr;</button>
+          </div>
+        </div>
+
+        <!-- TAB 5: IP -->
+        <div class="tab-panel" id="tab5">
+          <div class="panel-header"><h2>Section 3 &mdash; Intellectual Property</h2><div class="panel-subtitle">All Submissions</div></div>
+          <div class="panel-body">
+            <div class="field-group"><label>1. Who owns the IP in the outputs generated?</label><textarea name="ip1Ownership" rows="2"></textarea></div>
+            <div class="field-group"><label>2. Risk of IP infringement from training data?</label><textarea name="ip2Infringement" rows="2"></textarea></div>
+            <div class="field-group"><label>3. Vendor indemnification for IP claims?</label><textarea name="ip3Indemnification" rows="2"></textarea></div>
+            <div class="field-group"><label>4. Plagiarism detection controls in place?</label><textarea name="ip4Plagiarism" rows="2"></textarea></div>
+            <div class="field-group"><label>5. Confidentiality protections for inputs?</label><textarea name="ip5Confidentiality" rows="2"></textarea></div>
+            <div class="field-group"><label>6. External use restrictions documented?</label><textarea name="ip6ExternalUse" rows="2"></textarea></div>
+            <div class="field-group"><label>7. Restrictions on model output redistribution?</label><textarea name="ip7Restrictions" rows="2"></textarea></div>
+            <div class="field-group"><label>8. Training data IP clearance?</label><textarea name="ip8Training" rows="2"></textarea></div>
+          </div>
+          <div class="tab-nav-footer">
+            <button type="button" class="btn-nav" onclick="switchTab(4)">&larr; Previous</button>
+            <span style="font-family:-apple-system,sans-serif;font-size:0.85rem;">Tab 6 of 7</span>
+            <button type="button" class="btn-nav btn-nav-primary" onclick="switchTab(6)">Next &rarr;</button>
+          </div>
+        </div>
+
+        <!-- TAB 6: WORKFORCE -->
+        <div class="tab-panel" id="tab6">
+          <div class="panel-header"><h2>Section 4 &mdash; Workforce Impact</h2><div class="panel-subtitle">All Submissions</div></div>
+          <div class="panel-body">
+            <div class="field-group"><label>1. Will this tool replace or significantly change existing roles?</label><textarea name="wf1JobReplacement" rows="2"></textarea></div>
+            <div class="field-group"><label>2. Impact assessment completed?</label><textarea name="wf2Assessment" rows="2"></textarea></div>
+            <div class="field-group"><label>3. HR consultation completed?</label><textarea name="wf3HRConsult" rows="2"></textarea></div>
+            <div class="field-group"><label>4. Training plan for affected employees?</label><textarea name="wf4Training" rows="2"></textarea></div>
+            <div class="field-group"><label>5. Risk of skill atrophy in affected roles?</label><textarea name="wf5SkillAtrophy" rows="2"></textarea></div>
+            <div class="field-group"><label>6. Accountability framework for AI-assisted decisions?</label><textarea name="wf6Accountability" rows="2"></textarea></div>
+            <div class="field-group"><label>7. Client concerns about AI use addressed?</label><textarea name="wf7ClientConcerns" rows="2"></textarea></div>
+            <div class="field-group"><label>8. Escalation path if AI produces errors?</label><textarea name="wf8Escalation" rows="2"></textarea></div>
+          </div>
+          <div class="tab-nav-footer">
+            <button type="button" class="btn-nav" onclick="switchTab(5)">&larr; Previous</button>
+            <span style="font-family:-apple-system,sans-serif;font-size:0.85rem;">Tab 7 of 7</span>
+            <div>
+              <button type="submit" class="btn-submit">Submit for Review</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- REVIEWER VIEW -->
+    <div id="reviewView">
+      <div class="dashboard-panel">
+        <h3>Reviewer Panel</h3>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:16px; font-family:-apple-system,sans-serif;">Enter the Submission ID from the email to begin your review.</p>
+        <div class="row">
+          <div class="field-group"><label>Submission ID</label><input type="text" id="reviewSubId" placeholder="Paste submission ID"></div>
+          <div class="field-group"><label>&nbsp;</label><button class="btn-nav btn-nav-primary" onclick="loadReview()" style="width:100%;">Load Submission</button></div>
+        </div>
+      </div>
+
+      <div id="reviewFormWrapper" style="display:none;">
+        <!-- Collapsible: Submission Summary -->
+        <div class="collapsible-header open" onclick="toggleCollapsible(this)">
+          <h3><span class="chevron">&#9660;</span> Submission Summary</h3>
+        </div>
+        <div class="collapsible-body open">
+          <div class="collapsible-inner">
+            <div class="dashboard-panel" id="submissionSummary" style="margin-bottom:0; border-radius:0 0 var(--radius) var(--radius); border-top:none;"></div>
+          </div>
+        </div>
+
+        <!-- Collapsible: Read-only requestor tabs (0-6) -->
+        <div id="requestorTabsReadOnly" style="display:none; margin-top:16px;">
+          <div class="collapsible-header open" onclick="toggleCollapsible(this)">
+            <h3><span class="chevron">&#9660;</span> Requestor Submission (Tabs 0-6) &mdash; Read Only</h3>
+          </div>
+          <div class="collapsible-body open">
+            <div class="collapsible-inner">
+              <div class="tab-bar" style="position:relative; margin-bottom:0; border-radius:0;" id="roTabBar">
+                <button class="tab-btn active" onclick="switchROTab(0)">0 Snapshot</button>
+                <button class="tab-btn" onclick="switchROTab(1)">1 Use Case</button>
+                <button class="tab-btn" onclick="switchROTab(2)">2 Classification</button>
+                <button class="tab-btn" onclick="switchROTab(3)">3 Custom GPT</button>
+                <button class="tab-btn" onclick="switchROTab(4)">4 Vendor Tool</button>
+                <button class="tab-btn" onclick="switchROTab(5)">5 IP</button>
+                <button class="tab-btn" onclick="switchROTab(6)">6 Workforce</button>
+              </div>
+              <div id="roTabContent" style="background:var(--card); border-top:1px solid var(--border); border-radius:0 0 var(--radius) var(--radius); padding:24px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Collapsible: Reviewer Assessment (Tabs 7-10) -->
+        <div style="margin-top:16px;">
+          <div class="collapsible-header open" onclick="toggleCollapsible(this)">
+            <h3><span class="chevron">&#9660;</span> Reviewer Assessment (Tabs 7-10)</h3>
+          </div>
+          <div class="collapsible-body open">
+            <div class="collapsible-inner" style="padding:20px;">
+              <div class="review-type-selector">
+                <button class="review-type-btn active" onclick="setReviewType('compliance')">Compliance</button>
+                <button class="review-type-btn" onclick="setReviewType('legal')">Legal</button>
+                <button class="review-type-btn" onclick="setReviewType('security')">Security</button>
+              </div>
+
+              <!-- Review tabs 7-10 -->
+              <div class="tab-bar" style="position:relative; margin-bottom:20px; border-radius:var(--radius);" id="reviewTabBar">
+                <button class="tab-btn active" onclick="switchReviewTab(0)">7 Regulatory</button>
+                <button class="tab-btn" onclick="switchReviewTab(1)">8 Risk Library</button>
+                <button class="tab-btn" onclick="switchReviewTab(2)">9 Risk Declaration</button>
+                <button class="tab-btn" onclick="switchReviewTab(3)">10 Assessment</button>
+              </div>
+
+        <form id="reviewForm">
+          <!-- Review Tab 7: Regulatory -->
+          <div class="tab-panel active" id="rtab0">
+            <div class="panel-header"><h2>Section 5 &mdash; Regulatory Mapping</h2><div class="panel-subtitle">Reviewer Section</div></div>
+            <div class="panel-body">
+              <div class="field-group"><label>1. Which jurisdictions does this tool operate in?</label><textarea name="reg1Jurisdictions" rows="2"></textarea></div>
+              <div class="field-group"><label>2. Does this tool process PII?</label><textarea name="reg2PII" rows="2"></textarea></div>
+              <div class="field-group"><label>3. EU AI Act classification (if applicable)?</label><textarea name="reg3EUAIAct" rows="2"></textarea></div>
+              <div class="field-group"><label>4. GDPR compliance verified?</label><textarea name="reg4GDPR" rows="2"></textarea></div>
+              <div class="field-group"><label>5. DPIA completed?</label><textarea name="reg5DPIA" rows="2"></textarea></div>
+              <div class="field-group"><label>6. Industry-specific regulations identified?</label><textarea name="reg6Industry" rows="2"></textarea></div>
+              <div class="field-group"><label>7. Cross-border data transfer implications?</label><textarea name="reg7CrossBorder" rows="2"></textarea></div>
+              <div class="field-group"><label>8. Data residency requirements?</label><textarea name="reg8Residency" rows="2"></textarea></div>
+              <div class="field-group"><label>9. High-risk AI classification under any regulation?</label><textarea name="reg9HighRisk" rows="2"></textarea></div>
+              <div class="field-group"><label>10. Regulatory reporting obligations?</label><textarea name="reg10Reporting" rows="2"></textarea></div>
+            </div>
+            <div class="tab-nav-footer">
+              <button type="button" class="btn-nav" disabled>&larr; Previous</button>
+              <span style="font-family:-apple-system,sans-serif;font-size:0.85rem;">Review Tab 1 of 4</span>
+              <button type="button" class="btn-nav btn-nav-primary" onclick="switchReviewTab(1)">Next &rarr;</button>
+            </div>
+          </div>
+
+          <!-- Review Tab 8: Risk Library -->
+          <div class="tab-panel" id="rtab1">
+            <div class="panel-header"><h2>Risk Assessment Library</h2><div class="panel-subtitle">Reviewer Only &mdash; Select applicable risks and severity</div></div>
+            <div class="panel-body">
+              <div class="risk-category">
+                <div class="risk-cat-header cat-model"><h3>Model &amp; Operational Risk</h3></div>
+                <div class="risk-cat-body">
+                  <div class="risk-row"><label>Generative AI Hallucinations</label><select name="risk_hallucinations"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Bias / Discrimination Impact</label><select name="risk_bias"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Data Integrity / Poisoning</label><select name="risk_dataIntegrity"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Model Drift / Degradation</label><select name="risk_modelDrift"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Prompt Injection / Jailbreak</label><select name="risk_promptInjection"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Lack of Explainability</label><select name="risk_explainability"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Vendor / Third-Party Dependency</label><select name="risk_vendorDep"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Single Point of Failure</label><select name="risk_spof"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                </div>
+              </div>
+              <div class="risk-category">
+                <div class="risk-cat-header cat-security"><h3>Security &amp; Data Risk</h3></div>
+                <div class="risk-cat-body">
+                  <div class="risk-row"><label>Data Breach / Leakage</label><select name="risk_dataBreach"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Sensitive Data in Prompts</label><select name="risk_sensitivePrompts"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Unauthorized Access</label><select name="risk_unauthorizedAccess"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Data Retention Non-Compliance</label><select name="risk_retentionCompliance"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Encryption Gaps</label><select name="risk_encryption"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                </div>
+              </div>
+              <div class="risk-category">
+                <div class="risk-cat-header cat-strategic"><h3>Strategic &amp; Reputational Risk</h3></div>
+                <div class="risk-cat-body">
+                  <div class="risk-row"><label>Brand / Reputation Damage</label><select name="risk_brand"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Client Trust Erosion</label><select name="risk_clientTrust"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Competitive Disadvantage</label><select name="risk_competitive"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Strategic Misalignment</label><select name="risk_strategic"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                </div>
+              </div>
+              <div class="risk-category">
+                <div class="risk-cat-header cat-ethical"><h3>Ethical &amp; Societal Risk</h3></div>
+                <div class="risk-cat-body">
+                  <div class="risk-row"><label>Fairness / Equity Concerns</label><select name="risk_fairness"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Transparency Deficit</label><select name="risk_transparency"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Workforce Displacement</label><select name="risk_workforce"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Environmental Impact</label><select name="risk_environment"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                </div>
+              </div>
+              <div class="risk-category">
+                <div class="risk-cat-header cat-legal"><h3>Legal &amp; Regulatory Risk</h3></div>
+                <div class="risk-cat-body">
+                  <div class="risk-row"><label>Regulatory Non-Compliance</label><select name="risk_regNonCompliance"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Intellectual Property Infringement</label><select name="risk_ipInfringement"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Liability Exposure</label><select name="risk_liability"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                  <div class="risk-row"><label>Cross-Border Legal Conflicts</label><select name="risk_crossBorderLegal"><option value="">Select severity</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-nav-footer">
+              <button type="button" class="btn-nav" onclick="switchReviewTab(0)">&larr; Previous</button>
+              <span style="font-family:-apple-system,sans-serif;font-size:0.85rem;">Review Tab 2 of 4</span>
+              <button type="button" class="btn-nav btn-nav-primary" onclick="switchReviewTab(2)">Next &rarr;</button>
+            </div>
+          </div>
+
+          <!-- Review Tab 9: Risk Declaration -->
+          <div class="tab-panel" id="rtab2">
+            <div class="panel-header"><h2>Risk Declaration</h2><div class="panel-subtitle">Reviewer Section</div></div>
+            <div class="panel-body">
+              <div class="field-group">
+                <label>Residual Risk Level <span class="req">*</span></label>
+                <div class="radio-group">
+                  <label class="radio-item"><input type="radio" name="residualRisk" value="low"><span>Low</span></label>
+                  <label class="radio-item"><input type="radio" name="residualRisk" value="medium"><span>Medium</span></label>
+                  <label class="radio-item"><input type="radio" name="residualRisk" value="high"><span>High</span></label>
+                  <label class="radio-item"><input type="radio" name="residualRisk" value="critical"><span>Critical</span></label>
+                </div>
+              </div>
+              <div class="field-group"><label>Key Risks Identified</label><textarea name="keyRisks" rows="4"></textarea></div>
+              <div class="field-group"><label>Proposed Mitigations</label><textarea name="proposedMitigations" rows="4"></textarea></div>
+              <div class="field-group"><label>Business Owner Attestation Notes</label><textarea name="attestationNotes" rows="3"></textarea></div>
+            </div>
+            <div class="tab-nav-footer">
+              <button type="button" class="btn-nav" onclick="switchReviewTab(1)">&larr; Previous</button>
+              <span style="font-family:-apple-system,sans-serif;font-size:0.85rem;">Review Tab 3 of 4</span>
+              <button type="button" class="btn-nav btn-nav-primary" onclick="switchReviewTab(3)">Next &rarr;</button>
+            </div>
+          </div>
+
+          <!-- Review Tab 10: Assessment -->
+          <div class="tab-panel" id="rtab3">
+            <div class="panel-header"><h2>Reviewer Assessment</h2><div class="panel-subtitle">Reviewer Section</div></div>
+            <div class="panel-body">
+              <div class="row">
+                <div class="field-group"><label>Reviewer Name <span class="req">*</span></label><input type="text" name="reviewerName"></div>
+                <div class="field-group"><label>Review Date <span class="req">*</span></label><input type="date" name="reviewDate"></div>
+              </div>
+              <div class="field-group">
+                <label>Recommendation <span class="req">*</span></label>
+                <div class="radio-group">
+                  <label class="radio-item"><input type="radio" name="recommendation" value="approve"><span>Approve</span></label>
+                  <label class="radio-item"><input type="radio" name="recommendation" value="conditional"><span>Conditional Approval</span></label>
+                  <label class="radio-item"><input type="radio" name="recommendation" value="reject"><span>Reject</span></label>
+                </div>
+              </div>
+              <div class="field-group"><label>Assessment Notes</label><textarea name="reviewNotes" rows="5"></textarea></div>
+              <div class="submit-area">
+                <p>Submit your <span id="reviewTypeLabel" style="font-weight:700;color:var(--bessemer-green);">compliance</span> review for this submission.</p>
+                <button type="submit" class="btn-submit">Submit Review</button>
+              </div>
+            </div>
+            <div class="tab-nav-footer">
+              <button type="button" class="btn-nav" onclick="switchReviewTab(2)">&larr; Previous</button>
+              <span style="font-family:-apple-system,sans-serif;font-size:0.85rem;">Review Tab 4 of 4</span>
+              <button type="button" class="btn-nav" disabled>Next &rarr;</button>
+            </div>
+          </div>
+        </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- APPROVER VIEW -->
+    <div id="approveView">
+      <div class="dashboard-panel">
+        <h3>Approver Panel</h3>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:16px; font-family:-apple-system,sans-serif;">Enter the Submission ID from the email to make your decision.</p>
+        <div class="row">
+          <div class="field-group"><label>Submission ID</label><input type="text" id="approveSubId" placeholder="Paste submission ID"></div>
+          <div class="field-group"><label>&nbsp;</label><button class="btn-nav btn-nav-primary" onclick="loadApproval()" style="width:100%;">Load Submission</button></div>
+        </div>
+      </div>
+
+      <div id="approveFormWrapper" style="display:none;">
+        <div class="dashboard-panel" id="approvalSummary"></div>
+
+        <form id="approveForm">
+          <div class="panel-header"><h2>Final Decision &mdash; Approver</h2><div class="panel-subtitle">Tab 11</div></div>
+          <div class="panel-body">
+            <div class="row">
+              <div class="field-group"><label>Approver Name <span class="req">*</span></label><input type="text" name="approverName"></div>
+              <div class="field-group"><label>Approver Title</label><input type="text" name="approverTitle"></div>
+            </div>
+            <div class="field-group"><label>Approval Date</label><input type="date" name="approveDate"></div>
+
+            <div class="subsection">
+              <div class="subsection-title">Risk Ratings</div>
+              <div class="row">
+                <div class="field-group"><label>Model &amp; Operational</label>
+                  <select name="ratingModel"><option value="">Select</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select>
+                </div>
+                <div class="field-group"><label>Security &amp; Data</label>
+                  <select name="ratingSecurity"><option value="">Select</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select>
+                </div>
+              </div>
+              <div class="row">
+                <div class="field-group"><label>Strategic &amp; Reputational</label>
+                  <select name="ratingStrategic"><option value="">Select</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select>
+                </div>
+                <div class="field-group"><label>Ethical &amp; Societal</label>
+                  <select name="ratingEthical"><option value="">Select</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select>
+                </div>
+              </div>
+              <div class="field-group"><label>Legal &amp; Regulatory</label>
+                <select name="ratingLegal"><option value="">Select</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label>Final Decision <span class="req">*</span></label>
+              <div class="radio-group">
+                <label class="radio-item"><input type="radio" name="decision" value="approved"><span>Approved</span></label>
+                <label class="radio-item"><input type="radio" name="decision" value="conditional"><span>Conditional Approval</span></label>
+                <label class="radio-item"><input type="radio" name="decision" value="rejected"><span>Rejected</span></label>
+              </div>
+            </div>
+
+            <div class="field-group"><label>Conditions (if applicable)</label><textarea name="conditions" rows="3"></textarea></div>
+            <div class="field-group"><label>Required Mitigations</label><textarea name="mitigations" rows="3"></textarea></div>
+
+            <div class="subsection">
+              <div class="subsection-title">Re-Review Schedule</div>
+              <div class="row">
+                <div class="field-group"><label>Frequency</label>
+                  <select name="reReviewFreq"><option value="">Select</option><option value="quarterly">Quarterly</option><option value="semiannual">Semi-Annual</option><option value="annual">Annual</option></select>
+                </div>
+                <div class="field-group"><label>Next Review Date</label><input type="date" name="nextReviewDate"></div>
+              </div>
+              <div class="field-group"><label>Re-review Triggers</label><textarea name="rereviewTriggers" rows="2"></textarea></div>
+            </div>
+
+            <div class="field-group"><label>Approver Signature (type name)</label><input type="text" name="approverSignature"></div>
+
+            <div class="submit-area">
+              <p>By submitting, you confirm your final decision on this GenAI submission.</p>
+              <button type="submit" class="btn-submit">Submit Final Decision</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Success!</div>
+
+  <script>
+    const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:8000'
+      : 'https://app-vcpljwde.fly.dev';
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(str || ''));
+      return div.innerHTML;
+    }
+
+    let currentReviewType = 'compliance';
+    let currentReviewSubId = '';
+    let currentApproveSubId = '';
+
+    // MODE SWITCHING
+    function setMode(mode) {
+      document.querySelectorAll('.mode-btn').forEach((b,i) => {
+        const modes = ['dashboard','form','review','approve'];
+        b.classList.toggle('active', modes[i] === mode);
+      });
+      document.getElementById('dashboardView').classList.toggle('active', mode === 'dashboard');
+      document.getElementById('formView').classList.toggle('active', mode === 'form');
+      document.getElementById('reviewView').classList.toggle('active', mode === 'review');
+      document.getElementById('approveView').classList.toggle('active', mode === 'approve');
+      if (mode === 'dashboard') loadSubmissions();
+
+      // Check URL params
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('review')) {
+        document.getElementById('reviewSubId').value = params.get('review');
+      }
+      if (params.get('approve')) {
+        document.getElementById('approveSubId').value = params.get('approve');
+      }
+    }
+
+    // TAB SWITCHING (requestor form)
+    function switchTab(idx) {
+      document.querySelectorAll('#formView .tab-panel').forEach((p,i) => p.classList.toggle('active', i === idx));
+      document.querySelectorAll('#formView .tab-bar .tab-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // TAB SWITCHING (review form)
+    function switchReviewTab(idx) {
+      document.querySelectorAll('#reviewView form .tab-panel').forEach((p,i) => p.classList.toggle('active', i === idx));
+      document.querySelectorAll('#reviewTabBar .tab-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // REVIEW TYPE
+    function setReviewType(type) {
+      currentReviewType = type;
+      document.querySelectorAll('.review-type-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === type));
+      document.getElementById('reviewTypeLabel').textContent = type;
+    }
+
+    // TOAST
+    function showToast(msg, isError) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.background = isError ? '#dc2626' : 'var(--bessemer-green)';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    // SERIALIZE FORM
+    function serializeForm(formEl) {
+      const data = {};
+      formEl.querySelectorAll('input[type="text"], input[type="date"], input[type="email"], textarea, select').forEach(el => {
+        if (el.name && el.value) data[el.name] = el.value;
+      });
+      formEl.querySelectorAll('input[type="radio"]:checked').forEach(el => {
+        if (el.name) data[el.name] = el.value;
+      });
+      const cbs = {};
+      formEl.querySelectorAll('input[type="checkbox"]:checked').forEach(el => {
+        if (el.name) {
+          if (!cbs[el.name]) cbs[el.name] = [];
+          cbs[el.name].push(el.value);
+        }
+      });
+      Object.assign(data, cbs);
+      return data;
+    }
+
+    // LOAD SUBMISSIONS (KANBAN)
+    let allSubmissions = [];
+    const KANBAN_LANES = [
+      { key: 'needs_info', label: 'Needs Info' },
+      { key: 'ready_for_review', label: 'Ready for Review' },
+      { key: 'approved', label: 'Approved' },
+      { key: 'rejected', label: 'Rejected' }
+    ];
+
+    function normalizeLane(item) {
+      const raw = String(item && (item.workflow_lane || item.status || 'submitted') || 'submitted').toLowerCase();
+      const v = raw.replace(/[^a-z0-9_-]/g, '');
+      if (v === 'needsinfo') return 'needs_info';
+      if (v === 'readyforreview') return 'ready_for_review';
+      if (v === 'reviewed' || v === 'submitted') return 'ready_for_review';
+      if (v === 'conditional') return 'approved';
+      if (['needs_info', 'ready_for_review', 'approved', 'rejected'].includes(v)) return v;
+      return 'ready_for_review';
+    }
+
+    function priorityClass(p) {
+      const v = String(p || '').toLowerCase();
+      if (v === 'high') return 'pill pill-high';
+      if (v === 'low') return 'pill pill-low';
+      return 'pill pill-medium';
+    }
+
+    function setSelectOptions(selectEl, values) {
+      if (!selectEl) return;
+      const prev = selectEl.value;
+      const keep = new Set();
+
+      const base = document.createElement('option');
+      base.value = '';
+      base.textContent = 'All';
+
+      selectEl.innerHTML = '';
+      selectEl.appendChild(base);
+
+      values.forEach(v => {
+        const val = typeof v === 'string' ? v : v.value;
+        const label = typeof v === 'string' ? v : v.label;
+        if (!val) return;
+
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label || val;
+        selectEl.appendChild(opt);
+        keep.add(val);
+      });
+
+      if (keep.has(prev)) selectEl.value = prev;
+    }
+
+    function populateFilters(items) {
+      const dept = Array.from(new Set(items.map(i => i.department).filter(Boolean))).sort();
+      setSelectOptions(document.getElementById('filterDepartment'), dept);
+
+      // Lane select from canonical lanes
+      setSelectOptions(
+        document.getElementById('filterLane'),
+        KANBAN_LANES.map(l => ({ value: l.key, label: l.label }))
+      );
+    }
+
+    function getFilters() {
+      return {
+        department: document.getElementById('filterDepartment')?.value || '',
+        priority: document.getElementById('filterPriority')?.value || '',
+        lane: document.getElementById('filterLane')?.value || ''
+      };
+    }
+
+    function openSubmissionFromDashboard(item) {
+      const id = item && item.id ? String(item.id) : '';
+      if (!id) return;
+      const status = String(item.status || '').toLowerCase();
+      const lane = normalizeLane(item);
+
+      // clear query params so user doesn't get "stuck" in deep links
+      window.history.replaceState({}, '', window.location.pathname);
+
+      if (status === 'reviewed' || lane === 'approved' || lane === 'rejected' || ['approved', 'rejected', 'conditional'].includes(status)) {
+        setMode('approve');
+        document.getElementById('approveSubId').value = id;
+        loadApproval();
+      } else {
+        setMode('review');
+        document.getElementById('reviewSubId').value = id;
+        loadReview();
+      }
+    }
+
+    function renderKanban(items) {
+      const board = document.getElementById('kanbanBoard');
+      if (!board) return;
+
+      const f = getFilters();
+      const filtered = items.filter(i => {
+        const deptOk = !f.department || String(i.department || '') === f.department;
+        const priOk = !f.priority || String(i.priority || '') === f.priority;
+        const laneKey = normalizeLane(i);
+        const laneOk = !f.lane || laneKey === f.lane;
+        return deptOk && priOk && laneOk;
+      });
+
+      const visibleLanes = f.lane ? KANBAN_LANES.filter(l => l.key === f.lane) : KANBAN_LANES;
+
+      board.innerHTML = '';
+      if (!filtered.length) {
+        const msg = document.createElement('div');
+        msg.style.color = 'var(--text-secondary)';
+        msg.style.fontFamily = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
+        msg.style.fontSize = '0.9rem';
+        msg.textContent = 'No submissions match the current filters.';
+        board.appendChild(msg);
+        return;
+      }
+
+      visibleLanes.forEach(lane => {
+        const laneItems = filtered.filter(i => normalizeLane(i) === lane.key);
+
+        const col = document.createElement('div');
+        col.className = 'kanban-col';
+
+        const header = document.createElement('div');
+        header.className = 'kanban-col-header';
+        const h = document.createElement('h4');
+        h.textContent = lane.label;
+        const count = document.createElement('div');
+        count.className = 'kanban-count';
+        count.textContent = String(laneItems.length);
+        header.appendChild(h);
+        header.appendChild(count);
+
+        const body = document.createElement('div');
+        body.className = 'kanban-col-body';
+
+        if (!laneItems.length) {
+          const empty = document.createElement('div');
+          empty.className = 'kanban-meta';
+          empty.textContent = 'No items';
+          body.appendChild(empty);
+        } else {
+          laneItems.forEach(i => {
+            const card = document.createElement('div');
+            card.className = 'kanban-card';
+            card.addEventListener('click', () => openSubmissionFromDashboard(i));
+
+            const title = document.createElement('div');
+            title.className = 'kanban-title';
+            title.textContent = String(i.projectName || 'Untitled');
+
+            const meta = document.createElement('div');
+            meta.className = 'kanban-meta';
+            const idLine = document.createElement('div');
+            idLine.textContent = `ID: ${String(i.submission_id || i.id || '')}`;
+            const deptLine = document.createElement('div');
+            deptLine.textContent = `Dept: ${String(i.department || i.businessUnit || 'N/A')}`;
+
+            const priWrap = document.createElement('div');
+            const pri = document.createElement('span');
+            pri.className = priorityClass(i.priority || 'Medium');
+            pri.textContent = String(i.priority || 'Medium');
+            priWrap.appendChild(pri);
+
+            meta.appendChild(idLine);
+            meta.appendChild(deptLine);
+            meta.appendChild(priWrap);
+
+            card.appendChild(title);
+            card.appendChild(meta);
+            body.appendChild(card);
+          });
+        }
+
+        col.appendChild(header);
+        col.appendChild(body);
+        board.appendChild(col);
+      });
+    }
+
+    async function loadSubmissions() {
+      const board = document.getElementById('kanbanBoard');
+      try {
+        const res = await fetch(API_URL + '/api/submissions');
+        const items = await res.json();
+        allSubmissions = Array.isArray(items) ? items : [];
+        populateFilters(allSubmissions);
+        renderKanban(allSubmissions);
+      } catch(e) {
+        if (board) {
+          board.innerHTML = '';
+          const err = document.createElement('div');
+          err.style.color = '#dc2626';
+          err.style.fontFamily = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
+          err.style.fontSize = '0.9rem';
+          err.textContent = 'Error loading submissions. Is the backend running?';
+          board.appendChild(err);
+        }
+      }
+    }
+
+    // SUBMIT FORM (Requestor)
+    document.getElementById('genaiForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const submitBtn = this.querySelector('button[type="submit"]');
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
+      const data = serializeForm(this);
+      try {
+        const res = await fetch(API_URL + '/api/submissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        showToast(result.message || 'Submitted! ID: ' + result.id);
+        this.reset();
+        switchTab(0);
+        setTimeout(() => setMode('dashboard'), 1500);
+      } catch(e) {
+        showToast('Error submitting form. Check backend connection.', true);
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit for Review'; }
+      }
+    });
+
+    // READ-ONLY TAB DEFINITIONS (matches requestor tabs 0-6)
+    const RO_TAB_DEFS = [
+      { title: 'Section 0 — Snapshot', subtitle: 'All Submissions', fields: [
+        { key: 'solutionType', label: 'Solution Type' },
+        { key: 'requestType', label: 'Request Type' },
+        { key: 'projectName', label: 'Project Name' },
+        { key: 'businessUnit', label: 'Business Unit' },
+        { key: 'businessSponsor', label: 'Business Sponsor' },
+        { key: 'executiveSponsor', label: 'Executive Sponsor' },
+        { key: 'businessOwner', label: 'Business Owner' },
+        { key: 'technicalOwner', label: 'Technical Owner' },
+        { key: 'submissionDate', label: 'Submission Date' },
+        { key: 'goLiveDate', label: 'Target Go-Live Date' },
+        { key: 'bizObj', label: 'Business Objectives' },
+      ]},
+      { title: 'Section 1 — Use Case & Workflow Clarity', subtitle: 'All Submissions', fields: [
+        { key: 'wfTrigger', label: 'Trigger' },
+        { key: 'wfInputs', label: 'Inputs' },
+        { key: 'wfProcessing', label: 'Processing' },
+        { key: 'wfOutputs', label: 'Outputs' },
+        { key: 'outputType', label: 'Output Types Produced' },
+        { key: 'audienceCount', label: 'Audience Count' },
+        { key: 'userAddRemove', label: 'User Add/Remove Process' },
+        { key: 'decisionSupport', label: 'Decision Support Level' },
+      ]},
+      { title: 'Section 2 — AI System Classification', subtitle: 'All Submissions', fields: [
+        { key: 'aiType', label: 'AI Type' },
+        { key: 'riskTier', label: 'Risk Tier' },
+        { key: 'riskChar', label: 'Risk Characteristics' },
+      ]},
+      { title: 'Option A — Custom GPT (Firm-Built Model)', subtitle: 'Complete if Option A selected', fields: [
+        { key: 'a1ModelName', label: 'Model Name' },
+        { key: 'a1BaseModel', label: 'Base Model' },
+        { key: 'a1ModelVersion', label: 'Model Version' },
+        { key: 'a1Hosting', label: 'Hosting Environment' },
+        { key: 'a1Architecture', label: 'Architecture Description' },
+        { key: 'a1TrainingData', label: 'Training Data Sources' },
+        { key: 'a1DataClassification', label: 'Data Classification' },
+        { key: 'a1DataRetention', label: 'Data Retention Policy' },
+        { key: 'a1Accuracy', label: 'Accuracy Metrics' },
+        { key: 'a1Hallucination', label: 'Hallucination Mitigation' },
+      ]},
+      { title: 'Option B — Vendor Tool (External SaaS)', subtitle: 'Complete if Option B selected', fields: [
+        { key: 'b1VendorName', label: 'Vendor Name' },
+        { key: 'b1ProductName', label: 'Product Name' },
+        { key: 'b1UnderlyingModel', label: 'Underlying Model' },
+        { key: 'b1AccessMode', label: 'Access Mode' },
+        { key: 'b1ContractStatus', label: 'Contract Status' },
+        { key: 'b1SecurityAssessment', label: 'Security Assessment Status' },
+        { key: 'b1DataLocation', label: 'Data Location' },
+        { key: 'b1VendorRetention', label: 'Vendor Retention Policy' },
+        { key: 'b1TrainOnData', label: 'Vendor Trains on Data?' },
+      ]},
+      { title: 'Section 3 — Intellectual Property', subtitle: 'All Submissions', fields: [
+        { key: 'ip1Ownership', label: 'IP Ownership' },
+        { key: 'ip2Infringement', label: 'IP Infringement Risk' },
+        { key: 'ip3Indemnification', label: 'Vendor Indemnification' },
+        { key: 'ip4Plagiarism', label: 'Plagiarism Detection' },
+        { key: 'ip5Confidentiality', label: 'Confidentiality Protections' },
+        { key: 'ip6ExternalUse', label: 'External Use Restrictions' },
+        { key: 'ip7Restrictions', label: 'Output Redistribution' },
+        { key: 'ip8Training', label: 'Training Data IP Clearance' },
+      ]},
+      { title: 'Section 4 — Workforce Impact', subtitle: 'All Submissions', fields: [
+        { key: 'wf1JobReplacement', label: 'Job Replacement Impact' },
+        { key: 'wf2Assessment', label: 'Impact Assessment' },
+        { key: 'wf3HRConsult', label: 'HR Consultation' },
+        { key: 'wf4Training', label: 'Training Plan' },
+        { key: 'wf5SkillAtrophy', label: 'Skill Atrophy Risk' },
+        { key: 'wf6Accountability', label: 'Accountability Framework' },
+        { key: 'wf7ClientConcerns', label: 'Client Concerns' },
+        { key: 'wf8Escalation', label: 'Escalation Path' },
+      ]},
+    ];
+
+    let currentROTab = 0;
+    let currentROFormData = {};
+
+    function toggleCollapsible(header) {
+      header.classList.toggle('open');
+      const body = header.nextElementSibling;
+      body.classList.toggle('open');
+    }
+
+    function switchROTab(idx) {
+      currentROTab = idx;
+      document.querySelectorAll('#roTabBar .tab-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
+      renderROTab();
+    }
+
+    function renderROTab() {
+      const def = RO_TAB_DEFS[currentROTab];
+      const fd = currentROFormData;
+      let html = '<div class="panel-header" style="margin:-24px -24px 20px; padding:20px 28px; border-bottom:3px solid var(--bessemer-green); border-radius:0;"><h2>' + escapeHtml(def.title) + '</h2><div class="panel-subtitle">' + escapeHtml(def.subtitle) + ' <span style="color:var(--bessemer-gold); font-weight:700;">— Read Only</span></div></div>';
+      let hasData = false;
+      def.fields.forEach(f => {
+        let val = fd[f.key];
+        if (Array.isArray(val)) val = val.join(', ');
+        if (!val) val = '';
+        if (val) hasData = true;
+        const displayVal = val ? escapeHtml(String(val)) : '<span style="color:var(--text-secondary); font-style:italic;">Not provided</span>';
+        html += '<div style="margin-bottom:14px;"><div style="font-size:0.82rem; font-weight:700; color:var(--text-secondary); margin-bottom:4px; font-family:-apple-system,sans-serif;">' + escapeHtml(f.label) + '</div><div style="font-size:0.9rem; padding:10px 14px; background:var(--bessemer-cream); border:1px solid var(--border); border-radius:6px; min-height:38px;">' + displayVal + '</div></div>';
+      });
+      if (!hasData) {
+        html += '<p style="color:var(--text-secondary); font-style:italic; font-family:-apple-system,sans-serif;">No data submitted for this section.</p>';
+      }
+      document.getElementById('roTabContent').innerHTML = html;
+    }
+
+    // LOAD REVIEW
+    async function loadReview() {
+      const subId = document.getElementById('reviewSubId').value.trim();
+      if (!subId) { showToast('Enter a submission ID', true); return; }
+      currentReviewSubId = subId;
+      try {
+        const res = await fetch(API_URL + '/api/submissions/' + subId);
+        if (!res.ok) throw new Error('Not found');
+        const item = await res.json();
+        const fd = item.form_data || {};
+        currentROFormData = fd;
+
+        // Build summary with agent info if available
+        let summaryHtml = '<h3>Submission: ' + escapeHtml(fd.projectName || 'N/A') + '</h3><p style="font-family:-apple-system,sans-serif;font-size:0.85rem;color:var(--text-secondary);">Business Unit: ' + escapeHtml(fd.businessUnit || 'N/A') + ' | Risk Tier: ' + escapeHtml(fd.riskTier || 'N/A') + ' | Status: ' + escapeHtml(item.status || 'N/A') + '</p>';
+        if (item.agent_summary) {
+          const as = item.agent_summary;
+          summaryHtml += '<div style="margin-top:12px; padding:12px; background:var(--bessemer-cream); border:1px solid var(--border); border-radius:6px;"><div style="font-size:0.82rem; font-weight:700; color:var(--bessemer-green-dark); margin-bottom:8px; font-family:-apple-system,sans-serif;">AI Agent Summary</div>';
+          summaryHtml += '<div style="font-size:0.82rem; font-family:-apple-system,sans-serif; line-height:1.6;">';
+          summaryHtml += '<strong>Risk Level:</strong> ' + escapeHtml(String(as.riskLevel || 'N/A')) + ' | <strong>Priority:</strong> ' + escapeHtml(String(as.priority || 'N/A')) + ' | <strong>Lane:</strong> ' + escapeHtml(String(as.assignedLane || 'N/A')) + '<br>';
+          summaryHtml += '<strong>Reason:</strong> ' + escapeHtml(String(as.reason || 'N/A'));
+          if (as.missingInformation && as.missingInformation.length) {
+            summaryHtml += '<br><strong>Missing:</strong> ' + escapeHtml(as.missingInformation.join(', '));
+          }
+          summaryHtml += '</div></div>';
+        }
+        document.getElementById('submissionSummary').innerHTML = summaryHtml;
+
+        // Show requestor tabs (read-only)
+        document.getElementById('requestorTabsReadOnly').style.display = 'block';
+        currentROTab = 0;
+        document.querySelectorAll('#roTabBar .tab-btn').forEach((b,i) => b.classList.toggle('active', i === 0));
+        renderROTab();
+
+        document.getElementById('reviewFormWrapper').style.display = 'block';
+        switchReviewTab(0);
+      } catch(e) {
+        showToast('Submission not found. Check the ID.', true);
+      }
+    }
+
+    // SUBMIT REVIEW
+    document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      if (!currentReviewSubId) { showToast('Load a submission first', true); return; }
+      const submitBtn = this.querySelector('button[type="submit"]');
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
+      const data = serializeForm(this);
+      const findings = {};
+      this.querySelectorAll('select[name^="risk_"]').forEach(sel => {
+        if (sel.value) findings[sel.name] = sel.value;
+      });
+      data.findings = findings;
+      try {
+        const res = await fetch(API_URL + '/api/submissions/' + currentReviewSubId + '/reviews/' + currentReviewType, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        let msg = result.message || 'Review submitted!';
+        if (result.all_reviews_complete) msg += ' All reviews complete - approver notified!';
+        showToast(msg);
+        this.reset();
+      } catch(e) {
+        showToast('Error submitting review.', true);
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Review'; }
+      }
+    });
+
+    // LOAD APPROVAL
+    async function loadApproval() {
+      const subId = document.getElementById('approveSubId').value.trim();
+      if (!subId) { showToast('Enter a submission ID', true); return; }
+      currentApproveSubId = subId;
+      try {
+        const res = await fetch(API_URL + '/api/submissions/' + subId);
+        if (!res.ok) throw new Error('Not found');
+        const item = await res.json();
+        const fd = item.form_data || {};
+        const reviews = item.reviews || {};
+        let reviewHtml = '';
+        for (const [type, rev] of Object.entries(reviews)) {
+          const status = rev.status || 'pending';
+          const color = status === 'completed' ? 'var(--bessemer-green)' : 'var(--bessemer-gold)';
+          reviewHtml += '<div style="border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:8px;"><strong style="color:' + color + ';">' + escapeHtml(type.toUpperCase()) + '</strong>: ' + escapeHtml(status) + (rev.recommendation ? ' | Rec: ' + escapeHtml(rev.recommendation) : '') + (rev.reviewerName ? ' | By: ' + escapeHtml(rev.reviewerName) : '') + '</div>';
+        }
+        document.getElementById('approvalSummary').innerHTML = '<h3>Submission: ' + escapeHtml(fd.projectName || 'N/A') + '</h3><p style="font-family:-apple-system,sans-serif;font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">Business Unit: ' + escapeHtml(fd.businessUnit || 'N/A') + ' | Risk Tier: ' + escapeHtml(fd.riskTier || 'N/A') + '</p><div class="subsection-title">Review Summary</div>' + reviewHtml;
+        document.getElementById('approveFormWrapper').style.display = 'block';
+      } catch(e) {
+        showToast('Submission not found. Check the ID.', true);
+      }
+    }
+
+    // SUBMIT APPROVAL
+    document.getElementById('approveForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      if (!currentApproveSubId) { showToast('Load a submission first', true); return; }
+      const submitBtn = this.querySelector('button[type="submit"]');
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
+      const data = serializeForm(this);
+      data.ratings = {
+        model: data.ratingModel || '',
+        security: data.ratingSecurity || '',
+        strategic: data.ratingStrategic || '',
+        ethical: data.ratingEthical || '',
+        legal: data.ratingLegal || ''
+      };
+      try {
+        const res = await fetch(API_URL + '/api/submissions/' + currentApproveSubId + '/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        showToast(result.message || 'Decision submitted!');
+        this.reset();
+        document.getElementById('approveFormWrapper').style.display = 'none';
+      } catch(e) {
+        showToast('Error submitting decision.', true);
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Final Decision'; }
+      }
+    });
+
+    // URL PARAM HANDLING
+    window.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('filterDepartment')?.addEventListener('change', () => renderKanban(allSubmissions));
+      document.getElementById('filterPriority')?.addEventListener('change', () => renderKanban(allSubmissions));
+      document.getElementById('filterLane')?.addEventListener('change', () => renderKanban(allSubmissions));
+
+      // Auto-refresh dashboard while visible
+      setInterval(() => {
+        if (document.getElementById('dashboardView')?.classList.contains('active')) {
+          loadSubmissions();
+        }
+      }, 30000);
+
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('review')) {
+        setMode('review');
+        document.getElementById('reviewSubId').value = params.get('review');
+        loadReview();
+      } else if (params.get('approve')) {
+        setMode('approve');
+        document.getElementById('approveSubId').value = params.get('approve');
+        loadApproval();
+      } else {
+        loadSubmissions();
+      }
+    });
+  </script>
+</body>
+</html>
