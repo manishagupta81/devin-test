@@ -74,6 +74,7 @@ def send_email(subject: str, body_html: str, to_email: str):
 
 
 def build_requestor_summary_email(submission: dict, review_url: str) -> str:
+    safe_review_url = html.escape(review_url)
     project = html.escape(submission.get("projectName", "N/A"))
     business_unit = html.escape(submission.get("businessUnit", "N/A"))
     solution_type = html.escape(submission.get("solutionType", "N/A"))
@@ -82,7 +83,7 @@ def build_requestor_summary_email(submission: dict, review_url: str) -> str:
     risk_tier = html.escape(submission.get("riskTier", "N/A"))
     biz_obj = submission.get("bizObj", [])
     if isinstance(biz_obj, list):
-        biz_obj = html.escape(", ".join(biz_obj))
+        biz_obj = html.escape(", ".join(str(item) for item in biz_obj))
     else:
         biz_obj = html.escape(str(biz_obj))
 
@@ -127,7 +128,7 @@ def build_requestor_summary_email(submission: dict, review_url: str) -> str:
             </tr>
           </table>
           <div style="margin-top: 24px; text-align: center;">
-            <a href="{review_url}" style="display: inline-block; background: linear-gradient(135deg, #0d9488, #0f766e); color: white; padding: 12px 32px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem;">Open Review Form</a>
+            <a href="{safe_review_url}" style="display: inline-block; background: linear-gradient(135deg, #0d9488, #0f766e); color: white; padding: 12px 32px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem;">Open Review Form</a>
           </div>
           <p style="margin-top: 16px; font-size: 0.78rem; color: #64748b; text-align: center;">
             Please review the submission and provide your compliance, legal, and security assessment.
@@ -140,6 +141,7 @@ def build_requestor_summary_email(submission: dict, review_url: str) -> str:
 
 
 def build_reviewer_summary_email(submission: dict, reviews: dict, approve_url: str) -> str:
+    safe_approve_url = html.escape(approve_url)
     project = html.escape(submission.get("projectName", "N/A"))
     business_unit = html.escape(submission.get("businessUnit", "N/A"))
     risk_tier = html.escape(submission.get("riskTier", "N/A"))
@@ -173,7 +175,7 @@ def build_reviewer_summary_email(submission: dict, reviews: dict, approve_url: s
           <h3 style="font-size: 0.95rem; color: #1e293b; margin-bottom: 12px;">Review Summary</h3>
           {review_sections}
           <div style="margin-top: 24px; text-align: center;">
-            <a href="{approve_url}" style="display: inline-block; background: linear-gradient(135deg, #7e22ce, #6b21a8); color: white; padding: 12px 32px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem;">Open Approval Form</a>
+            <a href="{safe_approve_url}" style="display: inline-block; background: linear-gradient(135deg, #7e22ce, #6b21a8); color: white; padding: 12px 32px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem;">Open Approval Form</a>
           </div>
         </div>
       </div>
@@ -211,14 +213,17 @@ async def create_submission(request: Request):
     table = get_table()
     table.put_item(Item=item)
 
-    # Send email to reviewer
-    review_url = f"{FRONTEND_URL}?review={submission_id}"
-    email_html = build_requestor_summary_email(data, review_url)
-    send_email(
-        subject=f"GenAI Review Request: {data.get('projectName', 'New Submission')}",
-        body_html=email_html,
-        to_email=NOTIFY_EMAIL,
-    )
+    # Send email to reviewer (wrapped in try/except so submission succeeds even if email fails)
+    try:
+        review_url = f"{FRONTEND_URL}?review={submission_id}"
+        email_html = build_requestor_summary_email(data, review_url)
+        send_email(
+            subject=f"GenAI Review Request: {data.get('projectName', 'New Submission')}",
+            body_html=email_html,
+            to_email=NOTIFY_EMAIL,
+        )
+    except Exception as e:
+        print(f"Email notification error: {e}")
 
     return {"id": submission_id, "status": "submitted", "message": "Submission saved and reviewer notified."}
 
@@ -317,14 +322,17 @@ async def submit_review(submission_id: str, review_type: str, request: Request):
                 }
             raise
 
-        approve_url = f"{FRONTEND_URL}?approve={submission_id}"
-        form_data = item.get("form_data", {})
-        email_html = build_reviewer_summary_email(form_data, reviews, approve_url)
-        send_email(
-            subject=f"GenAI Review Ready for Approval: {form_data.get('projectName', 'Submission')}",
-            body_html=email_html,
-            to_email=NOTIFY_EMAIL,
-        )
+        try:
+            approve_url = f"{FRONTEND_URL}?approve={submission_id}"
+            form_data = item.get("form_data", {})
+            email_html = build_reviewer_summary_email(form_data, reviews, approve_url)
+            send_email(
+                subject=f"GenAI Review Ready for Approval: {form_data.get('projectName', 'Submission')}",
+                body_html=email_html,
+                to_email=NOTIFY_EMAIL,
+            )
+        except Exception as e:
+            print(f"Email notification error: {e}")
 
     return {
         "message": f"{review_type.title()} review submitted.",
@@ -368,36 +376,39 @@ async def approve_submission(submission_id: str, request: Request):
         ExpressionAttributeValues={":a": approval, ":s": decision_status, ":u": now},
     )
 
-    # Send confirmation email
-    form_data = item.get("form_data", {})
-    decision_label = html.escape(data.get("decision", "N/A").upper())
-    safe_project = html.escape(form_data.get("projectName", "N/A"))
-    safe_approver = html.escape(data.get("approverName", "N/A"))
-    color = "#15803d" if data.get("decision") == "approved" else "#dc2626" if data.get("decision") == "rejected" else "#a16207"
+    # Send confirmation email (wrapped in try/except so approval succeeds even if email fails)
+    try:
+        form_data = item.get("form_data", {})
+        decision_label = html.escape(data.get("decision", "N/A").upper())
+        safe_project = html.escape(form_data.get("projectName", "N/A"))
+        safe_approver = html.escape(data.get("approverName", "N/A"))
+        color = "#15803d" if data.get("decision") == "approved" else "#dc2626" if data.get("decision") == "rejected" else "#a16207"
 
-    email_html = f"""
-    <html>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; padding: 20px;">
-      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-        <div style="background: linear-gradient(135deg, #1e3a5f, #1a56db); color: white; padding: 24px;">
-          <h1 style="margin: 0; font-size: 1.3rem;">GenAI Review - Decision Made</h1>
-        </div>
-        <div style="padding: 24px; text-align: center;">
-          <h2 style="font-size: 1.1rem; color: #1e293b;">{safe_project}</h2>
-          <div style="display: inline-block; background: {color}; color: white; padding: 8px 24px; border-radius: 20px; font-weight: 700; font-size: 1rem; margin: 16px 0;">
-            {decision_label}
+        email_html = f"""
+        <html>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; padding: 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <div style="background: linear-gradient(135deg, #1e3a5f, #1a56db); color: white; padding: 24px;">
+              <h1 style="margin: 0; font-size: 1.3rem;">GenAI Review - Decision Made</h1>
+            </div>
+            <div style="padding: 24px; text-align: center;">
+              <h2 style="font-size: 1.1rem; color: #1e293b;">{safe_project}</h2>
+              <div style="display: inline-block; background: {color}; color: white; padding: 8px 24px; border-radius: 20px; font-weight: 700; font-size: 1rem; margin: 16px 0;">
+                {decision_label}
+              </div>
+              <p style="font-size: 0.85rem; color: #64748b;">Approved by: {safe_approver} on {now[:10]}</p>
+            </div>
           </div>
-          <p style="font-size: 0.85rem; color: #64748b;">Approved by: {safe_approver} on {now[:10]}</p>
-        </div>
-      </div>
-    </body>
-    </html>
-    """
+        </body>
+        </html>
+        """
 
-    send_email(
-        subject=f"GenAI Review Decision: {form_data.get('projectName', 'Submission')} - {decision_label}",
-        body_html=email_html,
-        to_email=NOTIFY_EMAIL,
-    )
+        send_email(
+            subject=f"GenAI Review Decision: {form_data.get('projectName', 'Submission')} - {decision_label}",
+            body_html=email_html,
+            to_email=NOTIFY_EMAIL,
+        )
+    except Exception as e:
+        print(f"Email notification error: {e}")
 
     return {"message": "Approval decision submitted.", "decision": data.get("decision")}
